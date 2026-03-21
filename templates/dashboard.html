@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/chatbot" class="nav-link">AI Advisor</a>
+    <div class="nav-divider"></div>
+    <a href="/logout" class="nav-btn-out">Logout</a>
+  </div>
+</nav>
+<div class="page page-lg" style="padding-top:84px;">
+  <div style="margin-bottom:2rem;">
+    <div class="sec-label">User Portal</div>
+    <div style="font-family:var(--head);font-size:2rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;">My Dashboard</div>
+    <div style="font-family:var(--mono);font-size:.72rem;color:var(--text3);margin-top:4px;letter-spacing:.06em;">// welcome back, <span style="color:var(--green);">{{ username }}</span></div>
+  </div>
+  {% set sc = namespace(v=0) %}{% set sf = namespace(v=0) %}
+  {% for row in predictions %}{% if row[2]=='SCAM' %}{% set sc.v = sc.v+1 %}{% else %}{% set sf.v = sf.v+1 %}{% endif %}{% endfor %}
+  <div class="stat-grid mb-24">
+    <div class="stat-card"><div class="stat-num c-blue">{{ predictions|length }}</div><div class="stat-lbl">Total Scans</div></div>
+    <div class="stat-card"><div class="stat-num c-red">{{ sc.v }}</div><div class="stat-lbl">Scams Caught</div></div>
+    <div class="stat-card"><div class="stat-num c-green">{{ sf.v }}</div><div class="stat-lbl">Legitimate</div></div>
+  </div>
+  <div class="card">
+    <div class="sec-label" style="margin-bottom:.8rem;">Scan History</div>
+    {% if predictions %}
+    <div style="overflow-x:auto;">
+      <table class="sd-table">
+        <thead><tr><th>#</th><th>Message</th><th>Result</th><th>Confidence</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for row in predictions %}
+          <tr>
+            <td class="mono c-dim">{{ loop.index }}</td>
+            <td style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ row[1] }}</td>
+            <td><span class="badge {{ 'badge-scam' if row[2]=='SCAM' else 'badge-safe' }}">{{ '⚠ SCAM' if row[2]=='SCAM' else '✓ SAFE' }}</span></td>
+            <td class="mono">{{ row[3] }}%</td>
+            <td style="font-family:var(--mono);font-size:.68rem;color:var(--text3);">{{ row[4] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:3rem 1.5rem;">
+      <div style="font-size:3rem;margin-bottom:12px;filter:grayscale(1);">🔍</div>
+      <div style="font-family:var(--mono);font-size:.78rem;color:var(--text3);letter-spacing:.06em;">No scans yet. <a href="/" style="color:var(--green);text-decoration:none;">Start scanning →</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<div id="chat-widget"><div id="chat-bubble">// Need help with your results?</div><a href="/chatbot" id="chat-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="chat-ping"></div></a></div>
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/admin" class="footer-link">Admin</a></div><div class="footer-copy">© 2025 ScamShield</div></footer>
+<script>const cursor=document.getElementById("cursor"),ring=document.getElementById("cursor-ring");let mx=0,my=0,rx=0,ry=0;document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+"px";cursor.style.top=my+"px";});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+"px";ring.style.top=ry+"px";requestAnimationFrame(ar);})();
+setTimeout(()=>{const b=document.getElementById("chat-bubble");b.style.display="block";setTimeout(()=>b.style.display="none",5000);},2000);</script>
+</body>
+</html>

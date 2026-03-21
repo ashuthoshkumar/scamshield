@@ -1,0 +1,17 @@
+﻿flask
+flask-cors
+gunicorn
+pandas
+numpy
+scikit-learn
+nltk
+regex
+matplotlib
+seaborn
+feedparser
+pillow
+google-generativeai
+deep-translator
+langdetect
+pytesseract
+requests

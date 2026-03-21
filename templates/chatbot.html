@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Advisor — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<style>
+.chat-wrap{max-width:740px;margin:0 auto;padding:84px 1.5rem 2rem;}
+.chat-header{display:flex;align-items:center;gap:14px;margin-bottom:1.5rem;padding:1rem 1.25rem;background:var(--card);border:1px solid var(--border);border-radius:12px;}
+.chat-avatar{width:44px;height:44px;border-radius:10px;background:var(--greendim);border:1px solid var(--border3);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.quick-btns{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--border);background:rgba(0,255,136,.02);}
+</style>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <div class="nav-divider"></div>
+    {% if session.get('user') %}
+      <a href="/dashboard" class="nav-btn-out">Dashboard</a>
+      <a href="/logout" class="nav-link">Logout</a>
+    {% else %}
+      <a href="/login" class="nav-btn-out">Login</a>
+      <a href="/register" class="nav-btn-solid">Register</a>
+    {% endif %}
+  </div>
+</nav>
+<div class="chat-wrap">
+  <div class="chat-header">
+    <div class="chat-avatar">🤖</div>
+    <div>
+      <div style="font-family:var(--head);font-size:1.1rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">AI Scam Advisor</div>
+      <div style="font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-top:2px;letter-spacing:.06em;">// powered by Gemini · responds in your language</div>
+    </div>
+    <span class="badge badge-safe" style="margin-left:auto;">● Online</span>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="chat-messages" id="chat-box">
+      <div class="chat-msg chat-msg-bot">
+        <strong style="color:var(--green);font-family:var(--head);">SCAMSHIELD AI</strong><br><br>
+        Hello! I'm your AI Scam Advisor 🛡️<br><br>
+        I can help you identify scams, explain fraud patterns, and give you step-by-step safety advice. I understand Hindi, Telugu, Tamil, English and more.<br><br>
+        What would you like to know?
+      </div>
+    </div>
+    <div class="quick-btns">
+      <button onclick="qa('What are common SMS scams in India?')" class="btn btn-ghost btn-sm">SMS Scams</button>
+      <button onclick="qa('How to identify phishing?')" class="btn btn-ghost btn-sm">Phishing</button>
+      <button onclick="qa('What is UPI fraud?')" class="btn btn-ghost btn-sm">UPI Fraud</button>
+      <button onclick="qa('What is OTP scam?')" class="btn btn-ghost btn-sm">OTP Scam</button>
+      <button onclick="qa('I got scammed. What should I do?')" class="btn btn-red btn-sm">I Got Scammed!</button>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="user-input" class="form-input" placeholder="Ask anything about scams…" style="flex:1;font-size:.88rem;" onkeypress="if(event.key==='Enter')sendMsg()"/>
+      <button onclick="sendMsg()" class="btn btn-primary">Send</button>
+    </div>
+  </div>
+</div>
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/dashboard" class="footer-link">Dashboard</a></div><div class="footer-copy">© 2025 ScamShield</div></footer>
+<script>
+const cursor=document.getElementById("cursor"),ring=document.getElementById("cursor-ring");let mx=0,my=0,rx=0,ry=0;document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+"px";cursor.style.top=my+"px";});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+"px";ring.style.top=ry+"px";requestAnimationFrame(ar);})();
+function addMsg(text,isUser){const box=document.getElementById("chat-box");const div=document.createElement("div");div.className="chat-msg "+(isUser?"chat-msg-user":"chat-msg-bot");div.innerHTML=text.replace(/\n/g,"<br>");box.appendChild(div);box.scrollTop=box.scrollHeight;}
+function qa(q){document.getElementById("user-input").value=q;sendMsg();}
+async function sendMsg(){const inp=document.getElementById("user-input");const msg=inp.value.trim();if(!msg)return;addMsg(msg,true);inp.value="";addMsg('<span style="font-family:var(--mono);font-size:.72rem;color:var(--green3);">// processing...</span>',false);
+try{const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});const data=await res.json();const box=document.getElementById("chat-box");box.lastChild.innerHTML=(data.reply||"Sorry, I could not process that.").replace(/\n/g,"<br>");box.scrollTop=box.scrollHeight;}
+catch(e){document.getElementById("chat-box").lastChild.innerHTML="Connection error. Please try again.";}}
+</script>
+</body>
+</html>

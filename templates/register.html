@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Register — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<style>
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 1.5rem 2rem;position:relative;}
+.auth-bg{position:absolute;inset:0;background:radial-gradient(ellipse 600px 600px at 50% 50%,rgba(0,255,136,0.04) 0%,transparent 70%);background-image:linear-gradient(rgba(0,255,136,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.02) 1px,transparent 1px);background-size:40px 40px,40px 40px,auto,auto;pointer-events:none;}
+.auth-card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2.5rem 2rem;position:relative;overflow:hidden;}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);}
+.auth-icon{width:52px;height:52px;border-radius:12px;background:var(--greendim);border:1px solid var(--border3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;font-size:1.5rem;}
+.auth-title{font-family:var(--head);font-size:1.7rem;font-weight:700;text-align:center;letter-spacing:.04em;text-transform:uppercase;color:var(--text1);margin-bottom:4px;}
+.auth-sub{font-family:var(--mono);font-size:.7rem;color:var(--text3);text-align:center;letter-spacing:.08em;margin-bottom:2rem;}
+.auth-footer{text-align:center;font-size:.83rem;color:var(--text3);margin-top:1.25rem;}
+.auth-footer a{color:var(--green);text-decoration:none;font-weight:600;}
+</style>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand">
+    <div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+    <span class="nav-brand-name">SCAM<span>SHIELD</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/login" class="nav-btn-out">Login</a>
+  </div>
+</nav>
+<div class="auth-wrap">
+  <div class="auth-bg"></div>
+  <div class="auth-card">
+    <div class="auth-icon">🛡️</div>
+    <div class="auth-title">Create Account</div>
+    <div class="auth-sub">// join scamshield — protect yourself for free</div>
+    {% if error %}<div class="alert alert-error"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> {{ error }}</div>{% endif %}
+    {% if success %}<div class="alert alert-success">✓ {{ success }}</div>{% endif %}
+    <form action="/register" method="POST" onsubmit="return checkPw()">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-input" placeholder="Choose a username" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-input" placeholder="your@email.com" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" id="pw1" class="form-input" placeholder="Min. 6 characters" required/>
+      </div>
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" id="pw2" name="confirm_password" class="form-input" placeholder="Re-enter password" required/>
+        <p id="pw-msg" style="font-family:var(--mono);font-size:.68rem;margin-top:6px;display:none;letter-spacing:.05em;"></p>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg">Create Account</button>
+    </form>
+    <p class="auth-footer">Already registered? <a href="/login">Login here →</a></p>
+  </div>
+</div>
+<script>
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
+(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar);})();
+document.getElementById('pw2').addEventListener('input',function(){
+  const p1=document.getElementById('pw1').value,p2=this.value,msg=document.getElementById('pw-msg');
+  msg.style.display=p2?'block':'none';
+  if(p1===p2){msg.textContent='✓ passwords match';msg.style.color='var(--green)';this.style.borderColor='var(--green3)';}
+  else{msg.textContent='✗ passwords do not match';msg.style.color='var(--red)';this.style.borderColor='rgba(255,61,90,.4)';}
+});
+function checkPw(){if(document.getElementById('pw1').value!==document.getElementById('pw2').value){alert('Passwords do not match!');return false;}return true;}
+</script>
+</body>
+</html>

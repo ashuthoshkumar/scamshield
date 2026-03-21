@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:80px 1.5rem 2rem;position:relative;}
+.auth-bg{position:absolute;inset:0;background:radial-gradient(ellipse 600px 600px at 50% 50%,rgba(255,170,0,0.04) 0%,transparent 70%);background-image:linear-gradient(rgba(0,255,136,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.015) 1px,transparent 1px);background-size:40px 40px,40px 40px,auto,auto;pointer-events:none;}
+.auth-card{width:100%;max-width:440px;background:var(--card);border:1px solid rgba(255,170,0,.2);border-radius:16px;padding:2.5rem 2rem;position:relative;overflow:hidden;}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--amber),transparent);}
+.auth-icon{width:52px;height:52px;border-radius:12px;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 1.2rem;font-size:1.5rem;}
+</style>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+
+{% if login_page %}
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links"><a href="/" class="nav-link">← Home</a></div>
+</nav>
+<div class="auth-wrap">
+  <div class="auth-bg"></div>
+  <div class="auth-card">
+    <div class="auth-icon">🔒</div>
+    <div style="font-family:var(--head);font-size:1.7rem;font-weight:700;text-align:center;letter-spacing:.04em;text-transform:uppercase;color:var(--amber);margin-bottom:4px;">Admin Access</div>
+    <div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);text-align:center;letter-spacing:.08em;margin-bottom:2rem;">// restricted — authorized personnel only</div>
+    {% if error %}<div class="alert alert-error">⚠ {{ error }}</div>{% endif %}
+    <form action="/admin" method="POST">
+      <div class="form-group">
+        <label class="form-label" style="color:rgba(255,170,0,.7);">Admin Username</label>
+        <input type="text" name="username" class="form-input" placeholder="admin" required autofocus style="border-color:rgba(255,170,0,.15);"/>
+      </div>
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label class="form-label" style="color:rgba(255,170,0,.7);">Admin Password</label>
+        <input type="password" name="password" class="form-input" placeholder="••••••••••••" required style="border-color:rgba(255,170,0,.15);"/>
+      </div>
+      <button type="submit" class="btn btn-full btn-lg" style="background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;font-family:var(--body);font-weight:700;border:none;cursor:none;">Access Admin Panel</button>
+    </form>
+    <p style="text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-top:1rem;letter-spacing:.06em;">DEFAULT: admin / admin123</p>
+  </div>
+</div>
+
+{% else %}
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <span class="badge badge-admin">Admin Panel</span>
+    <div class="nav-divider"></div>
+    <a href="/admin/logout" class="nav-btn-out">Logout</a>
+  </div>
+</nav>
+
+<div class="page page-lg" style="padding-top:84px;">
+  <div style="margin-bottom:2rem;">
+    <div class="sec-label">Control Center</div>
+    <div style="font-family:var(--head);font-size:2rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;">Admin Dashboard</div>
+    <div style="font-family:var(--mono);font-size:.72rem;color:var(--text3);margin-top:4px;letter-spacing:.06em;">// real-time threat intelligence overview</div>
+  </div>
+
+  <div class="stat-grid stat-grid-4 mb-24">
+    <div class="stat-card"><div class="stat-num c-blue">{{ stats.total }}</div><div class="stat-lbl">Total Scans</div></div>
+    <div class="stat-card"><div class="stat-num c-red">{{ stats.scam }}</div><div class="stat-lbl">Scams Detected</div></div>
+    <div class="stat-card"><div class="stat-num c-green">{{ stats.legitimate }}</div><div class="stat-lbl">Legitimate</div></div>
+    <div class="stat-card"><div class="stat-num c-amber">{% if stats.total > 0 %}{{ ((stats.scam / stats.total) * 100) | round(1) }}%{% else %}0%{% endif %}</div><div class="stat-lbl">Scam Rate</div></div>
+  </div>
+
+  <div class="grid-2 mb-24">
+    <div class="card glow">
+      <div class="sec-label" style="margin-bottom:.8rem;">Detection Breakdown</div>
+      <div style="height:210px;display:flex;align-items:center;justify-content:center;"><canvas id="pieChart"></canvas></div>
+    </div>
+    <div class="card glow">
+      <div class="sec-label" style="margin-bottom:.8rem;">Daily Activity (7 Days)</div>
+      <div style="height:210px;"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card mb-24 glow">
+    <div class="sec-label" style="margin-bottom:.8rem;">30-Day Trend</div>
+    <div style="height:185px;"><canvas id="trendChart"></canvas></div>
+  </div>
+
+  {% if news %}
+  <div class="card mb-24">
+    <div class="sec-label" style="margin-bottom:.8rem;">Live Scam Intelligence Feed</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      {% for article in news[:5] %}
+      <div style="padding:10px 13px;background:var(--black3);border-radius:8px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-family:var(--mono);font-size:.65rem;color:var(--green3);margin-top:2px;flex-shrink:0;">▶</span>
+        <div><a href="{{ article.link }}" target="_blank" style="font-size:.85rem;font-weight:500;color:var(--blue);text-decoration:none;">{{ article.title }}</a><p style="font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-top:3px;letter-spacing:.04em;">{{ article.published }}</p></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div class="sec-label" style="margin-bottom:0;">All Scan Records</div>
+      <a href="/admin/export" style="background:var(--green);color:var(--black);padding:5px 12px;border-radius:6px;text-decoration:none;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.06em;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">↓ EXPORT CSV</a>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="sd-table">
+        <thead><tr><th>#</th><th>Message</th><th>Result</th><th>Confidence</th><th>Timestamp</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for row in predictions %}
+          <tr>
+            <td class="mono c-dim">{{ row[0] }}</td>
+            <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ row[1] }}</td>
+            <td><span class="badge {{ 'badge-scam' if row[2]=='SCAM' else 'badge-safe' }}">{{ '⚠ SCAM' if row[2]=='SCAM' else '✓ SAFE' }}</span></td>
+            <td class="mono">{{ row[3] }}%</td>
+            <td style="font-family:var(--mono);font-size:.68rem;color:var(--text3);">{{ row[4] }}</td>
+            <td><button style="background:var(--greendim);border:1px solid var(--border2);color:var(--green3);padding:3px 10px;border-radius:4px;cursor:none;font-family:var(--mono);font-size:.65rem;letter-spacing:.04em;transition:all .2s;" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--green3)'" onclick='alert("ID #{{ row[0] }}\n\n"+{{ row[1]|tojson|safe }})'>VIEW</button></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const chartOpts={responsive:true,maintainAspectRatio:false};
+const tick={color:'#4d8870',font:{size:10,family:"'Share Tech Mono',monospace"}};
+const grid={color:'rgba(0,255,136,0.04)'};
+new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:['Scam','Legitimate'],datasets:[{data:[{{ stats.scam }},{{ stats.legitimate }}],backgroundColor:['rgba(255,61,90,0.75)','rgba(0,255,136,0.7)'],borderColor:['#ff3d5a','#00ff88'],borderWidth:1.5}]},options:{...chartOpts,plugins:{legend:{position:'bottom',labels:{color:'#8bbfaa',font:{size:11,family:"'Share Tech Mono',monospace"},padding:14}}},cutout:'68%'}});
+new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:{{ dates|tojson }},datasets:[{label:'Scams',data:{{ scam_counts|tojson }},backgroundColor:'rgba(255,61,90,0.65)',borderRadius:3},{label:'Legitimate',data:{{ legit_counts|tojson }},backgroundColor:'rgba(0,255,136,0.55)',borderRadius:3}]},options:{...chartOpts,plugins:{legend:{labels:{color:'#8bbfaa',font:{size:10}}}},scales:{x:{ticks:tick,grid:grid},y:{ticks:tick,grid:grid,beginAtZero:true}}}});
+new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:{{ trend_dates|tojson }},datasets:[{label:'Scams',data:{{ trend_scams|tojson }},borderColor:'#ff3d5a',backgroundColor:'rgba(255,61,90,0.07)',tension:0.4,fill:true,pointRadius:2},{label:'Legitimate',data:{{ trend_legit|tojson }},borderColor:'#00ff88',backgroundColor:'rgba(0,255,136,0.06)',tension:0.4,fill:true,pointRadius:2}]},options:{...chartOpts,plugins:{legend:{labels:{color:'#8bbfaa',font:{size:10}}}},scales:{x:{ticks:{...tick,font:{size:9}},grid:grid},y:{ticks:tick,grid:grid,beginAtZero:true}}}});
+</script>
+{% endif %}
+
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a>{% if not login_page %}<a href="/admin/logout" class="footer-link">Logout</a>{% endif %}</div><div class="footer-copy">© 2025 ScamShield · CVR College of Engineering</div></footer>
+<script>
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');let mx=0,my=0,rx=0,ry=0;document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar);})();
+</script>
+</body>
+</html>

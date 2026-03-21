@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>URL Scan Result — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<style>
+.scan-again-toggle{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:.85rem 1.5rem;border-radius:12px;border:1.5px dashed var(--border3);background:rgba(0,255,136,.04);cursor:none;font-family:var(--head);font-size:1rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);transition:all .25s;}
+.scan-again-toggle:hover{background:rgba(0,255,136,.08);border-color:var(--green);}
+.scan-again-toggle svg.arr{transition:transform .3s;}
+.scan-again-toggle.open svg.arr{transform:rotate(180deg);}
+.scan-again-panel{display:none;margin-top:1rem;animation:slideDown .3s ease;}
+.scan-again-panel.open{display:block;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.sa-tabs{display:flex;gap:4px;padding:4px;background:var(--black3);border:1px solid var(--border);border-radius:10px;margin-bottom:1rem;}
+.sa-tab{flex:1;padding:.5rem .4rem;border-radius:7px;border:none;background:transparent;color:var(--text3);cursor:none;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;}
+.sa-tab:hover{color:var(--green);}.sa-tab.active{background:var(--card2);color:var(--green);border:1px solid var(--border3);}
+.sa-panel{display:none;}.sa-panel.active{display:block;}
+.s-textarea{width:100%;min-height:110px;resize:vertical;background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;color:var(--text1);font-family:var(--body);font-size:.9rem;line-height:1.6;outline:none;transition:border-color .2s;margin-bottom:.9rem;}
+.s-textarea::placeholder{color:var(--text3);}.s-textarea:focus{border-color:var(--green3);}
+.s-input{width:100%;height:44px;background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:0 1rem;color:var(--text1);font-family:var(--mono);font-size:.85rem;outline:none;transition:border-color .2s;margin-bottom:.9rem;}
+.s-input::placeholder{color:var(--text3);}.s-input:focus{border-color:var(--green3);}
+.uz{border:1.5px dashed var(--border2);border-radius:9px;padding:1.8rem 1.2rem;text-align:center;cursor:none;transition:all .2s;margin-bottom:.9rem;}
+.uz:hover{border-color:var(--green3);background:rgba(0,255,136,.02);}
+</style>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    {% if session.get('user') %}
+      <span style="font-family:var(--mono);font-size:.72rem;color:var(--green);padding:0 6px;letter-spacing:.04em;">👤 {{ session.user.username }}</span>
+      <a href="/dashboard" class="nav-btn-out">Dashboard</a>
+    {% else %}
+      <a href="/login" class="nav-btn-out">Login</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="page">
+  {% set is_danger = not is_safe %}
+  <div class="result-box {{ 'result-scam' if is_danger else 'result-safe' }}" style="margin-top:5rem;">
+    <div class="result-icon">{{ '🚨' if is_danger else '✅' }}</div>
+    <div class="result-title">{{ 'DANGEROUS URL' if is_danger else 'URL LOOKS SAFE' }}</div>
+    <div style="margin-top:10px;"><span class="badge {{ 'badge-scam' if is_danger else 'badge-safe' }}" style="font-size:.8rem;padding:5px 14px;">Risk Level: {{ result }}</span></div>
+    {% if risk_score is defined and risk_score > 0 %}
+    <div style="margin-top:14px;">
+      <div style="font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-bottom:6px;letter-spacing:.08em;">RISK SCORE</div>
+      <div style="font-family:var(--mono);font-size:2.8rem;color:var(--red);text-shadow:0 0 20px rgba(255,61,90,.4);">{{ risk_score }}/10</div>
+      <div class="conf-bar-wrap" style="max-width:280px;margin:8px auto 0;"><div class="conf-bar conf-bar-scam" style="width:{{ [risk_score*10,100]|min }}%;"></div></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card mt-16">
+    <div class="sec-label" style="margin-bottom:.6rem;">Scanned URL</div>
+    <div class="terminal" style="word-break:break-all;color:var(--blue);">{{ url }}</div>
+  </div>
+
+  {% if flags %}
+  <div class="card mt-16">
+    <div class="sec-label" style="margin-bottom:.6rem;">{{ '⚠ Risk Factors' if is_danger else '✓ Analysis Details' }}</div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      {% for flag in flags %}
+      <div style="padding:9px 13px;border-radius:7px;background:{{ 'rgba(255,61,90,0.07)' if is_danger else 'rgba(0,255,136,0.05)' }};border:1px solid {{ 'rgba(255,61,90,0.2)' if is_danger else 'var(--border3)' }};font-family:var(--mono);font-size:.76rem;color:{{ '#ff8fa0' if is_danger else 'var(--green)' }};">{{ flag }}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card mt-16">
+    <div class="sec-label" style="margin-bottom:.6rem;">{{ '🚫 What To Do' if is_danger else '💡 Safety Reminder' }}</div>
+    {% if is_danger %}
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      <div style="padding:9px 13px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:#ff8fa0;">✗ Do NOT visit this URL</div>
+      <div style="padding:9px 13px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:#ff8fa0;">✗ Do NOT enter personal info or passwords</div>
+      <div style="padding:9px 13px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:#ff8fa0;">✗ Do NOT make any payments</div>
+      <div style="padding:9px 13px;background:rgba(0,255,136,.06);border:1px solid var(--border3);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:var(--green);">✓ Report to Cyber Crime Helpline: 1930</div>
+    </div>
+    {% else %}
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      <div style="padding:9px 13px;background:rgba(0,255,136,.05);border:1px solid var(--border3);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:var(--green);">✓ URL appears safe based on our analysis</div>
+      <div style="padding:9px 13px;background:rgba(0,255,136,.05);border:1px solid var(--border3);border-radius:7px;font-family:var(--mono);font-size:.76rem;color:var(--green);">✓ Always verify domain before entering sensitive info</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- SCAN AGAIN -->
+  <div style="margin-top:1.5rem;">
+    <button class="scan-again-toggle" id="sa-toggle" onclick="toggleSA()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      Scan Another Message / Image / URL
+      <svg class="arr" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+    </button>
+    <div class="scan-again-panel" id="sa-panel">
+      <div class="scard">
+        <div class="sa-tabs">
+          <button class="sa-tab active" onclick="saTab('msg',this)">Message</button>
+          <button class="sa-tab" onclick="saTab('img',this)">Screenshot</button>
+          <button class="sa-tab" onclick="saTab('bulk',this)">Bulk</button>
+          <button class="sa-tab" onclick="saTab('url',this)">URL</button>
+        </div>
+        <div class="sa-panel active" id="sa-msg"><form action="/predict" method="POST"><textarea class="s-textarea" name="message" placeholder="Paste suspicious message…" required></textarea><button type="submit" class="btn btn-primary">Analyze Message</button></form></div>
+        <div class="sa-panel" id="sa-img"><form action="/scan-image" method="POST" enctype="multipart/form-data"><div class="uz" onclick="document.getElementById('sa-if').click()"><div style="font-size:1.6rem;margin-bottom:6px;">📸</div><div style="font-family:var(--head);font-weight:600;margin-bottom:3px;">Upload Screenshot</div><div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);" id="sa-il">PNG, JPG · Max 10MB</div><input type="file" id="sa-if" name="image" accept="image/*" style="display:none" onchange="saLbl(this,'sa-il')" required/></div><button type="submit" class="btn btn-primary">Scan Image</button></form></div>
+        <div class="sa-panel" id="sa-bulk"><form action="/upload" method="POST" enctype="multipart/form-data"><div class="uz" onclick="document.getElementById('sa-bf').click()"><div style="font-size:1.6rem;margin-bottom:6px;">📂</div><div style="font-family:var(--head);font-weight:600;margin-bottom:3px;">Upload Bulk File</div><div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);" id="sa-bl">.TXT or .CSV</div><input type="file" id="sa-bf" name="file" accept=".txt,.csv" style="display:none" onchange="saLbl(this,'sa-bl')" required/></div><button type="submit" class="btn btn-primary">Upload &amp; Scan</button></form></div>
+        <div class="sa-panel" id="sa-url"><form action="/scan-url" method="POST"><input class="s-input" type="url" name="url" placeholder="https://suspicious-link.com" required/><button type="submit" class="btn btn-primary">Scan URL</button></form></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:1rem;flex-wrap:wrap;">
+    <a href="/chatbot" class="btn btn-outline btn-lg" style="flex:1;">Ask AI Advisor</a>
+    {% if session.get('user') %}<a href="/dashboard" class="btn btn-ghost btn-lg">Dashboard</a>{% endif %}
+  </div>
+</div>
+
+<div id="chat-widget"><div id="chat-bubble">// Want to know more about this URL?</div><a href="/chatbot" id="chat-toggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="chat-ping"></div></a></div>
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a></div><div class="footer-copy">© 2025 ScamShield</div></footer>
+<script>
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');let mx=0,my=0,rx=0,ry=0;document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar);})();
+document.addEventListener('DOMContentLoaded',()=>{const bar=document.querySelector('.conf-bar');if(bar){const w=bar.style.width;bar.style.width='0';setTimeout(()=>bar.style.width=w,200);}});
+function toggleSA(){const t=document.getElementById('sa-toggle'),p=document.getElementById('sa-panel'),o=p.classList.contains('open');t.classList.toggle('open',!o);p.classList.toggle('open',!o);if(!o)setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'nearest'}),100);}
+function saTab(n,btn){const y=window.scrollY;document.querySelectorAll('.sa-tab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.sa-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('sa-'+n).classList.add('active');window.scrollTo({top:y,behavior:'instant'});}
+function saLbl(i,id){if(i.files[0])document.getElementById(id).textContent='✓ '+i.files[0].name;}
+setTimeout(()=>{const b=document.getElementById('chat-bubble');b.style.display='block';setTimeout(()=>b.style.display='none',5000);},1500);
+</script>
+</body>
+</html>

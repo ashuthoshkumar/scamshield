@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bulk Scan Results — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    {% if session.get('user') %}<a href="/dashboard" class="nav-btn-out">Dashboard</a><a href="/logout" class="nav-link">Logout</a>{% else %}<a href="/login" class="nav-btn-out">Login</a>{% endif %}
+  </div>
+</nav>
+<div class="page page-lg" style="padding-top:84px;">
+  <a href="/" class="btn btn-ghost btn-sm mb-16" style="display:inline-flex;">← Back to Scanner</a>
+  <div class="sec-label">Bulk Analysis</div>
+  <div style="font-family:var(--head);font-size:2rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:4px;">Bulk Scan Results</div>
+  <div style="font-family:var(--mono);font-size:.72rem;color:var(--text3);margin-bottom:1.75rem;letter-spacing:.06em;">{{ total }} messages analyzed from <span style="color:var(--blue);">{{ filename }}</span></div>
+  <div class="stat-grid mb-24">
+    <div class="stat-card"><div class="stat-num c-blue">{{ total }}</div><div class="stat-lbl">Total Scanned</div></div>
+    <div class="stat-card"><div class="stat-num c-red">{{ scam_count }}</div><div class="stat-lbl">Scams Detected</div></div>
+    <div class="stat-card"><div class="stat-num c-green">{{ legit_count }}</div><div class="stat-lbl">Legitimate</div></div>
+  </div>
+  <div class="card">
+    <div class="sec-label" style="margin-bottom:.8rem;">All Results</div>
+    <div style="overflow-x:auto;">
+      <table class="sd-table">
+        <thead><tr><th>#</th><th>Message</th><th>Result</th><th>Confidence</th></tr></thead>
+        <tbody>
+          {% for item in results %}
+          <tr>
+            <td class="mono c-dim">{{ loop.index }}</td>
+            <td style="max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ item.message }}</td>
+            <td><span class="badge {{ 'badge-scam' if item.result=='SCAM' else 'badge-safe' }}">{{ '⚠ SCAM' if item.result=='SCAM' else '✓ SAFE' }}</span></td>
+            <td class="mono">{{ item.confidence }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div style="margin-top:1.25rem;"><a href="/" class="btn btn-primary btn-lg">Scan More Messages</a></div>
+</div>
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/admin" class="footer-link">Admin</a></div><div class="footer-copy">© 2025 ScamShield</div></footer>
+<script>const cursor=document.getElementById("cursor"),ring=document.getElementById("cursor-ring");let mx=0,my=0,rx=0,ry=0;document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+"px";cursor.style.top=my+"px";});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+"px";ring.style.top=ry+"px";requestAnimationFrame(ar);})();</script>
+</body>
+</html>
