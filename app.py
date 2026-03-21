@@ -14,7 +14,7 @@ from flask_cors import CORS
 import os
 import json
 import sqlite3
-import google.generativeai as genai
+import google.genai as genai
 import csv
 import io
 import threading

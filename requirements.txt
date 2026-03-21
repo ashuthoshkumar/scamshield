@@ -6,15 +6,12 @@ numpy
 scikit-learn
 nltk
 regex
-matplotlib
-seaborn
 feedparser
 pillow
-google-generativeai
+google-genai
 deep-translator
 langdetect
 pytesseract
 requests
 werkzeug
-google-genai
 opencv-python-headless
