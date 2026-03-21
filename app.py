@@ -649,6 +649,8 @@ def export_report():
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.units import inch
     from datetime import datetime
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
 
     # Get data from form
     message    = request.form.get('message', '')
@@ -720,7 +722,7 @@ def export_report():
     elements.append(Spacer(1, 20))
 
     # ── VERDICT BOX ──
-    verdict_text = '⚠  SCAM DETECTED' if result == 'SCAM' else '✓  LOOKS LEGITIMATE'
+    verdict_text = '[SCAM DETECTED]' if result == 'SCAM' else '[LOOKS LEGITIMATE]'
     verdict_data = [[
         Paragraph(verdict_text, ParagraphStyle('verd',
             fontName='Helvetica-Bold', fontSize=20,
@@ -808,12 +810,12 @@ def export_report():
         pattern_list = patterns.split(',')
         for p in pattern_list:
             if p.strip():
+                # Clean raw regex patterns to human readable
+                import re as re_mod
+                clean_p = re_mod.sub(r'\\b|\\s\+|\(\?i\)|\[.*?\]|\(.*?\)|\^|\$|\\', '', p.strip())
+                clean_p = clean_p.strip().title() or p.strip()
                 elements.append(Paragraph(
-                    f'⚠  {p.strip()}',
-                    ParagraphStyle('pat', fontName='Helvetica',
-                        fontSize=9, textColor=RED,
-                        leftIndent=10, spaceAfter=4)))
-        elements.append(Spacer(1, 20))
+                    f'[!]  {clean_p}',
 
     # ── SAFETY ADVICE ──
     elements.append(Paragraph(
@@ -825,19 +827,19 @@ def export_report():
 
     if result == 'SCAM':
         advices = [
-            '✗  Do NOT click any links in this message',
-            '✗  Do NOT share OTP, password or personal info',
-            '✗  Do NOT make any payments or transfers',
-            '✓  Block and report the sender immediately',
-            '✓  Report to Cyber Crime Helpline: 1930',
-            '✓  File complaint at: cybercrime.gov.in',
+            '[NO]  Do NOT click any links in this message',
+            '[NO]  Do NOT share OTP, password or personal info',
+            '[NO]  Do NOT make any payments or transfers',
+            '[YES] Block and report the sender immediately',
+            '[YES] Report to Cyber Crime Helpline: 1930',
+            '[YES] File complaint at: cybercrime.gov.in',
         ]
         colors_list = [RED, RED, RED, GREEN, GREEN, GREEN]
     else:
         advices = [
-            '✓  Message appears safe based on AI analysis',
-            '✓  Always verify sender before sharing info',
-            '✓  Stay alert — scammers evolve their tactics',
+            '[YES] Message appears safe based on AI analysis',
+            '[YES] Always verify sender before sharing info',
+            '[YES] Stay alert — scammers evolve their tactics',
         ]
         colors_list = [GREEN, GREEN, GREEN]
 
