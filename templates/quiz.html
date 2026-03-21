@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scam Awareness Quiz — ScamShield</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<style>
+.quiz-wrap{max-width:680px;margin:0 auto;padding:84px 1.5rem 4rem;}
+.quiz-hero{text-align:center;margin-bottom:3rem;}
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;position:relative;overflow:hidden;display:none;}
+.quiz-card.active{display:block;animation:fadeUp .4s ease;}
+.quiz-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);}
+.q-num{font-family:var(--mono);font-size:.7rem;color:var(--green3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem;}
+.q-text{font-family:var(--head);font-size:1.25rem;font-weight:700;color:var(--text1);line-height:1.4;margin-bottom:.5rem;}
+.q-context{font-size:.85rem;color:var(--text3);margin-bottom:1.75rem;line-height:1.6;font-style:italic;padding:10px 14px;background:var(--black3);border-radius:8px;border-left:3px solid var(--border3);}
+.options{display:flex;flex-direction:column;gap:10px;}
+.opt-btn{
+  width:100%;text-align:left;padding:1rem 1.25rem;
+  background:var(--black3);border:1px solid var(--border);
+  border-radius:10px;cursor:none;
+  font-family:var(--body);font-size:.9rem;color:var(--text2);
+  transition:all .2s;display:flex;align-items:center;gap:12px;
+}
+.opt-btn:hover:not(:disabled){border-color:var(--border3);color:var(--green);background:var(--greendim);}
+.opt-btn.correct{background:rgba(0,255,136,.1);border-color:var(--green);color:var(--green);}
+.opt-btn.wrong{background:rgba(255,61,90,.1);border-color:var(--red);color:var(--red);}
+.opt-btn:disabled{cursor:not-allowed;}
+.opt-letter{width:28px;height:28px;border-radius:6px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.75rem;color:var(--text3);flex-shrink:0;transition:all .2s;}
+.opt-btn.correct .opt-letter{background:rgba(0,255,136,.2);border-color:var(--green);color:var(--green);}
+.opt-btn.wrong .opt-letter{background:rgba(255,61,90,.2);border-color:var(--red);color:var(--red);}
+.explanation{display:none;margin-top:1.25rem;padding:1rem 1.25rem;border-radius:10px;font-size:.875rem;line-height:1.7;}
+.explanation.show{display:block;animation:fadeUp .3s ease;}
+.exp-safe{background:rgba(0,255,136,.06);border:1px solid var(--border3);color:var(--text2);}
+.exp-danger{background:rgba(255,61,90,.06);border:1px solid rgba(255,61,90,.25);color:var(--text2);}
+.progress-bar-wrap{height:4px;background:rgba(255,255,255,.05);border-radius:2px;margin-bottom:1.5rem;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--green3),var(--green));border-radius:2px;transition:width .5s ease;}
+.score-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2.5rem;text-align:center;display:none;}
+.score-card.show{display:block;animation:fadeUp .5s ease;}
+.score-num{font-family:var(--mono);font-size:4rem;font-weight:700;margin-bottom:8px;}
+.score-label{font-family:var(--head);font-size:1.4rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1rem;}
+.score-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:1.5rem 0;}
+.sb-item{background:var(--black3);border:1px solid var(--border);border-radius:10px;padding:1rem;}
+.sb-num{font-family:var(--mono);font-size:1.5rem;font-weight:700;margin-bottom:4px;}
+.sb-lbl{font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body class="animated-bg">
+<div class="scanline"></div>
+<div class="cursor" id="cursor"></div><div class="cursor-ring" id="cursor-ring"></div>
+<nav>
+  <a href="/" class="nav-brand"><div class="nav-logo-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><span class="nav-brand-name">SCAM<span>SHIELD</span></span></a>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/chatbot" class="nav-link">AI Advisor</a>
+    <div class="nav-divider"></div>
+    {% if session.get('user') %}
+      <a href="/dashboard" class="nav-btn-out">Dashboard</a>
+      <a href="/logout" class="nav-link">Logout</a>
+    {% else %}
+      <a href="/login" class="nav-btn-out">Login</a>
+      <a href="/register" class="nav-btn-solid">Register</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="quiz-wrap">
+  <div class="quiz-hero">
+    <div class="sec-label" style="justify-content:center;">Awareness Training</div>
+    <div style="font-family:var(--head);font-size:2.2rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.5rem;">Scam or Legit?</div>
+    <div style="font-family:var(--mono);font-size:.78rem;color:var(--text3);letter-spacing:.06em;">// test your scam detection skills — 8 questions</div>
+  </div>
+
+  <!-- START CARD -->
+  <div id="start-card" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2.5rem;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);"></div>
+    <div style="font-size:3rem;margin-bottom:1rem;">🧠</div>
+    <div style="font-family:var(--head);font-size:1.4rem;font-weight:700;text-transform:uppercase;margin-bottom:.75rem;">How Scam-Aware Are You?</div>
+    <div style="font-size:.9rem;color:var(--text3);max-width:400px;margin:0 auto 2rem;line-height:1.7;">8 real-world messages. You decide — SCAM or LEGIT? Score 8/8 to become a Scam Shield Expert!</div>
+    <div style="display:flex;justify-content:center;gap:2rem;margin-bottom:2rem;flex-wrap:wrap;">
+      <div style="text-align:center;"><div style="font-family:var(--mono);font-size:1.4rem;color:var(--green);">8</div><div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;">QUESTIONS</div></div>
+      <div style="text-align:center;"><div style="font-family:var(--mono);font-size:1.4rem;color:var(--amber);">~3</div><div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;">MINUTES</div></div>
+      <div style="text-align:center;"><div style="font-family:var(--mono);font-size:1.4rem;color:var(--blue);">🏆</div><div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;">EARN RANK</div></div>
+    </div>
+    <button onclick="startQuiz()" class="btn btn-primary btn-lg">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+      Start Quiz
+    </button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap" style="display:none;margin-top:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-family:var(--mono);font-size:.68rem;color:var(--text3);letter-spacing:.06em;">QUESTION <span id="q-current">1</span> OF 8</span>
+      <span style="font-family:var(--mono);font-size:.68rem;color:var(--green);letter-spacing:.06em;">SCORE: <span id="q-score">0</span></span>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%;"></div></div>
+  </div>
+
+  <!-- QUIZ QUESTIONS -->
+  <div id="quiz-container"></div>
+
+  <!-- SCORE CARD -->
+  <div class="score-card" id="score-card">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);"></div>
+    <div id="score-emoji" style="font-size:3.5rem;margin-bottom:.75rem;"></div>
+    <div class="score-num" id="final-score"></div>
+    <div class="score-label" id="score-label"></div>
+    <div id="score-desc" style="font-size:.88rem;color:var(--text3);max-width:400px;margin:0 auto 1.5rem;line-height:1.7;"></div>
+    <div class="score-breakdown">
+      <div class="sb-item"><div class="sb-num c-green" id="sb-correct">0</div><div class="sb-lbl">Correct</div></div>
+      <div class="sb-item"><div class="sb-num c-red" id="sb-wrong">0</div><div class="sb-lbl">Wrong</div></div>
+      <div class="sb-item"><div class="sb-num c-amber" id="sb-pct">0%</div><div class="sb-lbl">Accuracy</div></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="restartQuiz()" class="btn btn-primary btn-lg">Try Again</button>
+      <a href="/" class="btn btn-outline btn-lg">Scan Real Messages</a>
+      <a href="/chatbot" class="btn btn-ghost btn-lg">Ask AI Advisor</a>
+    </div>
+  </div>
+</div>
+
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/chatbot" class="footer-link">AI Advisor</a></div><div class="footer-copy">© 2025 ScamShield · CVR College of Engineering</div></footer>
+
+<script>
+// Cursor
+const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
+(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar);})();
+
+// Quiz Data
+const questions = [
+  {
+    text: "Is this message a SCAM or LEGIT?",
+    context: "SMS received: 'Dear SBI customer, your account has been SUSPENDED due to unusual activity. Update KYC immediately at: bit.ly/sbi-kyc-now or your account will be permanently blocked in 24 hours.'",
+    options: ["🚨 SCAM — This is fraud", "✅ LEGIT — Looks genuine"],
+    correct: 0,
+    explanation: "⚠️ SCAM! Real banks NEVER send KYC update links via SMS. The bit.ly short link is a phishing trap. Urgency language ('24 hours', 'SUSPENDED') is a classic scam tactic."
+  },
+  {
+    text: "Is this message a SCAM or LEGIT?",
+    context: "WhatsApp message: 'CONGRATULATIONS! You have been selected as the LUCKY WINNER of ₹25,00,000 in Amazon Mega Lucky Draw 2025! Claim your prize within 48 hours. Send ₹499 processing fee to UPI: prize@amazondraw.in'",
+    options: ["🚨 SCAM — This is fraud", "✅ LEGIT — Amazon really sent this"],
+    correct: 0,
+    explanation: "⚠️ SCAM! Amazon never runs WhatsApp lucky draws. Asking for ₹499 'processing fee' is a classic advance fee fraud. You can never WIN money by PAYING money first!"
+  },
+  {
+    text: "Is this email SCAM or LEGIT?",
+    context: "Email from 'support@google.com': 'Your Google account will be deleted in 24 hours due to policy violations. Click here to verify: accounts.google-secure-verify.com/login'",
+    options: ["🚨 SCAM — Fake Google email", "✅ LEGIT — Official Google mail"],
+    correct: 0,
+    explanation: "⚠️ SCAM! The link 'google-secure-verify.com' is NOT Google's domain. Google's real domain is google.com only. This is a phishing site designed to steal your password!"
+  },
+  {
+    text: "Is this SMS SCAM or LEGIT?",
+    context: "SMS from 'VM-HDFCBK': 'Your HDFC account ending 4521 has a credit of Rs.15,000 on 21-Mar-2026. If not done by you, call 1800-258-3838 immediately.'",
+    options: ["🚨 SCAM — Ignore this", "✅ LEGIT — Real bank transaction alert"],
+    correct: 1,
+    explanation: "✅ LEGIT! This is a genuine bank transaction SMS. It shows the last 4 digits of account, specific amount and date. The number 1800-258-3838 is HDFC's real helpline. No link, no urgency, no fee request!"
+  },
+  {
+    text: "Is this job offer SCAM or LEGIT?",
+    context: "LinkedIn message: 'Work from home! Earn ₹50,000/month liking YouTube videos. No experience needed. Pay ₹2000 registration fee to start. WhatsApp: 9988776655'",
+    options: ["🚨 SCAM — Fake job offer", "✅ LEGIT — Real WFH opportunity"],
+    correct: 0,
+    explanation: "⚠️ SCAM! No legitimate job pays you to like YouTube videos. The registration fee demand is a red flag — real employers NEVER charge you to hire you. This is a classic part-time job scam!"
+  },
+  {
+    text: "Is this OTP message SCAM or LEGIT?",
+    context: "Call from 'bank officer': 'Sir, I'm calling from your bank's fraud department. Your account has been compromised. To secure your account, please share the OTP you just received on your phone.'",
+    options: ["🚨 SCAM — Never share OTP", "✅ LEGIT — Bank is helping me"],
+    correct: 0,
+    explanation: "⚠️ SCAM! Banks NEVER ask for OTPs over the phone — not even their own employees. An OTP is a one-time password meant ONLY for you. Anyone asking for it is trying to steal your money!"
+  },
+  {
+    text: "Is this UPI request SCAM or LEGIT?",
+    context: "UPI notification: 'You have received a collect request of ₹1 from paytm@ybl. The message says: Accept to receive ₹5000 cashback in your account'",
+    options: ["🚨 SCAM — Don't accept", "✅ LEGIT — Free ₹5000 cashback"],
+    correct: 0,
+    explanation: "⚠️ SCAM! In UPI, you enter your PIN to SEND money, not receive it. A 'collect request' means THEY want to take money FROM you. Accepting this will deduct ₹1 (or more) from your account — not add ₹5000!"
+  },
+  {
+    text: "Is this delivery SMS SCAM or LEGIT?",
+    context: "SMS: 'Your Amazon package #402-8821 could not be delivered. Update your address within 24hrs to avoid return: amzn-delivery-update.xyz/redeliver'",
+    options: ["🚨 SCAM — Fake delivery SMS", "✅ LEGIT — Amazon delivery update"],
+    correct: 0,
+    explanation: "⚠️ SCAM! Amazon's real domain is amazon.in or amazon.com — never 'amzn-delivery-update.xyz'. Scammers use fake delivery SMS to steal your address, card details, or install malware!"
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+function startQuiz() {
+  document.getElementById('start-card').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'block';
+  renderQuestion(0);
+}
+
+function renderQuestion(index) {
+  answered = false;
+  const q = questions[index];
+  const container = document.getElementById('quiz-container');
+
+  // Update progress
+  document.getElementById('q-current').textContent = index + 1;
+  document.getElementById('progress-fill').style.width = ((index / questions.length) * 100) + '%';
+
+  container.innerHTML = `
+    <div class="quiz-card active" id="qcard-${index}">
+      <div class="q-num">// Question ${index + 1} of ${questions.length}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-context">${q.context}</div>
+      <div class="options">
+        ${q.options.map((opt, i) => `
+          <button class="opt-btn" onclick="answer(${index}, ${i})" id="opt-${index}-${i}">
+            <div class="opt-letter">${String.fromCharCode(65 + i)}</div>
+            ${opt}
+          </button>
+        `).join('')}
+      </div>
+      <div class="explanation" id="exp-${index}"></div>
+      <div id="next-btn-${index}" style="display:none;margin-top:1.25rem;">
+        <button onclick="nextQuestion(${index})" class="btn btn-primary">
+          ${index < questions.length - 1 ? 'Next Question →' : 'See My Results 🏆'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function answer(qIndex, optIndex) {
+  if (answered) return;
+  answered = true;
+
+  const q = questions[qIndex];
+  const isCorrect = optIndex === q.correct;
+
+  if (isCorrect) {
+    score++;
+    document.getElementById('q-score').textContent = score;
+  }
+
+  // Style buttons
+  q.options.forEach((_, i) => {
+    const btn = document.getElementById(`opt-${qIndex}-${i}`);
+    btn.disabled = true;
+    if (i === q.correct) btn.classList.add('correct');
+    else if (i === optIndex && !isCorrect) btn.classList.add('wrong');
+  });
+
+  // Show explanation
+  const exp = document.getElementById(`exp-${qIndex}`);
+  exp.textContent = q.explanation;
+  exp.classList.add('show');
+  exp.classList.add(isCorrect ? 'exp-safe' : 'exp-danger');
+
+  // Show next button
+  document.getElementById(`next-btn-${qIndex}`).style.display = 'block';
+}
+
+function nextQuestion(current) {
+  if (current < questions.length - 1) {
+    renderQuestion(current + 1);
+    window.scrollTo({ top: document.getElementById('quiz-container').getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+  } else {
+    showResults();
+  }
+}
+
+function showResults() {
+  document.getElementById('quiz-container').innerHTML = '';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('progress-fill').style.width = '100%';
+
+  const pct = Math.round((score / questions.length) * 100);
+  const scoreCard = document.getElementById('score-card');
+  scoreCard.classList.add('show');
+
+  document.getElementById('sb-correct').textContent = score;
+  document.getElementById('sb-wrong').textContent = questions.length - score;
+  document.getElementById('sb-pct').textContent = pct + '%';
+
+  let emoji, label, desc, color;
+  if (score === 8) {
+    emoji = '🏆'; label = 'Scam Shield Expert!'; color = 'var(--green)';
+    desc = 'Perfect score! You are a scam detection expert. You can spot frauds that fool millions of people every day!';
+  } else if (score >= 6) {
+    emoji = '🛡️'; label = 'Scam Defender!'; color = 'var(--green)';
+    desc = 'Great job! You have strong scam detection skills. A few more and you\'ll be a full expert!';
+  } else if (score >= 4) {
+    emoji = '⚠️'; label = 'Needs Practice!'; color = 'var(--amber)';
+    desc = 'You\'re learning! Scammers are clever. Review the explanations and try again to sharpen your skills.';
+  } else {
+    emoji = '🚨'; label = 'High Risk Profile!'; color = 'var(--red)';
+    desc = 'You\'re vulnerable to scams! Please read the explanations carefully and retake the quiz. Your safety matters!';
+  }
+
+  document.getElementById('score-emoji').textContent = emoji;
+  document.getElementById('final-score').textContent = score + '/8';
+  document.getElementById('final-score').style.color = color;
+  document.getElementById('score-label').textContent = label;
+  document.getElementById('score-label').style.color = color;
+  document.getElementById('score-desc').textContent = desc;
+
+  scoreCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function restartQuiz() {
+  current = 0; score = 0; answered = false;
+  document.getElementById('score-card').classList.remove('show');
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('q-score').textContent = '0';
+  renderQuestion(0);
+}
+</script>
+</body>
+</html>

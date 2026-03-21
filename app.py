@@ -362,6 +362,10 @@ def image_result():
                            translated_text=data['translated_text'],
                            user=session.get('user'))
 
+@app.route('/quiz')
+def quiz():
+    return render_template('quiz.html')
+
 # ─── CHATBOT PAGE ────────────────────────────────────────
 @app.route('/chatbot')
 def chatbot():
