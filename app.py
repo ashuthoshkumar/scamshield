@@ -36,7 +36,11 @@ def index():
         news = get_scam_news(max_articles=10)
     except:
         news = []
-    return render_template('index.html', user=user, news=news)
+    try:
+        stats = get_stats()
+    except:
+        stats = {'total': 0, 'scam': 0, 'legitimate': 0}
+    return render_template('index.html', user=user, news=news, stats=stats)
 
 
 # ─── REGISTER ────────────────────────────────────────────

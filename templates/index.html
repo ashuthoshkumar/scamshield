@@ -121,10 +121,26 @@
   </div>
   {% endif %}
   <div class="live-counter">
-    <div class="counter-item"><div class="counter-num" id="cnt-scans">48,291</div><div class="counter-lbl">Scans Today</div></div>
-    <div class="counter-item"><div class="counter-num" id="cnt-blocked">31,804</div><div class="counter-lbl">Scams Blocked</div></div>
-    <div class="counter-item"><div class="counter-num">99.2%</div><div class="counter-lbl">Accuracy</div></div>
-    <div class="counter-item"><div class="counter-num">&lt;1s</div><div class="counter-lbl">Response</div></div>
+    <div class="counter-item">
+      <div class="counter-num" id="cnt-scans">{{ stats.total }}</div>
+      <div class="counter-lbl">Total Scans</div>
+    </div>
+    <div class="counter-item">
+      <div class="counter-num" id="cnt-blocked">{{ stats.scam }}</div>
+      <div class="counter-lbl">Scams Blocked</div>
+    </div>
+    <div class="counter-item">
+      <div class="counter-num" id="cnt-legit">{{ stats.legitimate }}</div>
+      <div class="counter-lbl">Legitimate</div>
+    </div>
+    <div class="counter-item">
+      <div class="counter-num">99.2%</div>
+      <div class="counter-lbl">Accuracy</div>
+    </div>
+    <div class="counter-item">
+      <div class="counter-num">&lt;1s</div>
+      <div class="counter-lbl">Response</div>
+    </div>
   </div>
   <!-- LIVE NEWS TICKER -->
 {% if news %}
@@ -290,10 +306,14 @@ document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style
 (function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
 function animCount(el,target,dur){const start=parseInt(el.textContent.replace(/,/g,''))||0;const range=target-start;const step=dur/60;let cur=start;const t=setInterval(()=>{cur+=range/(dur/step);if(cur>=target){cur=target;clearInterval(t);}el.textContent=Math.floor(cur).toLocaleString();},step);}
 window.addEventListener('load',()=>{
-  animCount(document.getElementById('cnt-scans'),48291,2000);
-  animCount(document.getElementById('cnt-blocked'),31804,2000);
-  setInterval(()=>{const el=document.getElementById('cnt-scans');el.textContent=(parseInt(el.textContent.replace(/,/g,''))+Math.floor(Math.random()*3+1)).toLocaleString();},4000);
-  setInterval(()=>{const el=document.getElementById('cnt-blocked');el.textContent=(parseInt(el.textContent.replace(/,/g,''))+Math.floor(Math.random()*2+1)).toLocaleString();},6500);
+  // Animate from 0 to real database values
+  const scans = parseInt('{{ stats.total }}') || 0;
+  const blocked = parseInt('{{ stats.scam }}') || 0;
+  const legit = parseInt('{{ stats.legitimate }}') || 0;
+
+  animCount(document.getElementById('cnt-scans'), scans, 2000);
+  animCount(document.getElementById('cnt-blocked'), blocked, 2000);
+  animCount(document.getElementById('cnt-legit'), legit, 2000);
 });
 function switchTab(name, btn) {
   const scannerEl = document.getElementById('scanner');
