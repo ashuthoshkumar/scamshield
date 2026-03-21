@@ -69,6 +69,12 @@
 
   <!-- RESULT BOX -->
   <div class="result-box {{ 'result-scam' if is_scam else 'result-safe' }}" style="margin-top:5rem;">
+    {% if is_whatsapp_forward %}
+    <div style="display:inline-flex;align-items:center;gap:7px;padding:5px 14px;background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);border-radius:4px;margin-bottom:12px;">
+      <span style="font-size:1rem;">📱</span>
+      <span style="font-family:var(--mono);font-size:.68rem;color:#25d366;letter-spacing:.06em;text-transform:uppercase;">WhatsApp Forward Detected</span>
+    </div>
+    {% endif %}
     <div class="result-icon">{{ '☠️' if is_scam else '✅' }}</div>
     <div class="result-title">{{ 'SCAM DETECTED' if is_scam else 'LOOKS LEGITIMATE' }}</div>
     <div class="result-conf">// confidence score</div>
@@ -228,6 +234,25 @@
           <div style="height:100%;width:{{ confidence }}%;background:linear-gradient(90deg,var(--green3),var(--green));border-radius:4px;box-shadow:0 0 10px rgba(0,255,136,0.4);transition:width 1.2s cubic-bezier(.23,1,.32,1);" class="threat-bar"></div>
         </div>
       </div>
+    </div>
+  </div>
+  {% endif %}
+
+<!-- WHATSAPP FORWARD WARNING -->
+  {% if is_whatsapp_forward and is_scam %}
+  <div class="card mt-16" style="border-color:rgba(37,211,102,0.25);background:rgba(37,211,102,0.04);">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.3);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📱</div>
+      <div>
+        <div style="font-family:var(--head);font-size:1rem;font-weight:700;color:#25d366;letter-spacing:.03em;">WhatsApp Forward Scam!</div>
+        <div style="font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-top:2px;letter-spacing:.05em;">This message shows signs of viral WhatsApp scam forwarding</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      <div style="padding:8px 12px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:7px;font-family:var(--mono);font-size:.75rem;color:var(--red);">✗ Do NOT forward this message to anyone</div>
+      <div style="padding:8px 12px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:7px;font-family:var(--mono);font-size:.75rem;color:var(--red);">✗ Do NOT act on instructions in forwarded messages</div>
+      <div style="padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid var(--border3);border-radius:7px;font-family:var(--mono);font-size:.75rem;color:var(--green);">✓ Warn the person who sent this to you</div>
+      <div style="padding:8px 12px;background:rgba(0,255,136,.05);border:1px solid var(--border3);border-radius:7px;font-family:var(--mono);font-size:.75rem;color:var(--green);">✓ Report on WhatsApp: Long press → Report</div>
     </div>
   </div>
   {% endif %}

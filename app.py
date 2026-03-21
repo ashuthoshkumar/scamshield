@@ -152,6 +152,15 @@ def predict():
 
     confidence = ml_result['confidence']
     patterns_found = pattern_result['patterns_found']
+    # WhatsApp Forward Detection
+    whatsapp_signals = [
+        'forwarded', 'forward this', 'share this', 'send to all',
+        'send to everyone', 'must share', 'please share', 'share with',
+        'viral', 'breaking news', 'urgent share', 'share immediately',
+        'forward to', 'pass this', '🙏', 'please forward',
+        'share karo', 'forward karo', 'sabko bhejo', 'share करें'
+    ]
+    is_whatsapp_forward = any(signal.lower() in message.lower() for signal in whatsapp_signals)
     detected_lang = ml_result.get('detected_lang', 'English')
     translated_text = ml_result.get('translated_text', message)
 
@@ -195,6 +204,7 @@ def predict():
                            patterns_found=patterns_found,
                            detected_lang=detected_lang,
                            translated_text=translated_text,
+                           is_whatsapp_forward=is_whatsapp_forward,
                            user=user)
 
 # ─── URL SCANNER ROUTE ───────────────────────────────────
