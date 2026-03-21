@@ -82,6 +82,21 @@
   <div class="card mt-16">
     <div class="sec-label" style="margin-bottom:.6rem;">Analyzed Message</div>
     <div class="terminal" style="white-space:pre-wrap;line-height:1.8;color:var(--text2);">{{ message | safe }}</div>
+
+    <!-- TRANSLATION SECTION -->
+    {% if translated_text and detected_lang and detected_lang != 'English' and translated_text != message %}
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;flex-wrap:wrap;">
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;">Auto-Translated from</div>
+        <span class="badge badge-blue">{{ detected_lang }}</span>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--green3)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        <span class="badge badge-safe">English</span>
+      </div>
+      <div style="background:var(--black3);border:1px solid var(--border2);border-radius:8px;padding:1rem;font-size:.88rem;color:var(--text2);line-height:1.75;font-style:italic;">
+        "{{ translated_text }}"
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <!-- RISK SCORE CARD -->
@@ -219,7 +234,7 @@
 
   <!-- LANGUAGE + HELPLINE -->
   <div class="card mt-16" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-    <div><div class="sec-label" style="margin-bottom:.3rem;">Detected Language</div><span class="badge badge-blue">{{ language | default('English') }}</span></div>
+    <div><div class="sec-label" style="margin-bottom:.3rem;">Detected Language</div><span class="badge badge-blue">{{ detected_lang | default('English') }}</span></div>
     {% if is_scam %}
     <div style="margin-left:auto;padding:10px 16px;background:rgba(255,61,90,.07);border:1px solid rgba(255,61,90,.2);border-radius:8px;font-family:var(--mono);font-size:.72rem;color:var(--red);letter-spacing:.05em;">📞 Cyber Crime Helpline: <strong>1930</strong></div>
     {% endif %}
