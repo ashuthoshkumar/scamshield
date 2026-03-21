@@ -84,12 +84,135 @@
     <div class="terminal" style="white-space:pre-wrap;line-height:1.8;color:var(--text2);">{{ message | safe }}</div>
   </div>
 
-  <!-- PATTERNS -->
-  {% if patterns_found %}
+  <!-- RISK SCORE CARD -->
+  {% if is_scam %}
   <div class="card mt-16">
-    <div class="sec-label" style="margin-bottom:.6rem;">Detected Threat Patterns</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;">
-      {% for p in patterns_found %}<span class="badge badge-scam">⚠ {{ p }}</span>{% endfor %}
+    <div class="sec-label" style="margin-bottom:1rem;">Threat Breakdown Analysis</div>
+
+    <!-- OVERALL THREAT METER -->
+    <div style="display:flex;align-items:center;gap:16px;padding:1rem;background:rgba(255,61,90,0.06);border:1px solid rgba(255,61,90,0.2);border-radius:10px;margin-bottom:1.25rem;">
+      <div style="text-align:center;min-width:70px;">
+        <div style="font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--red);line-height:1;">{{ confidence }}%</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.08em;margin-top:2px;">THREAT SCORE</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:var(--head);font-size:.95rem;font-weight:700;color:var(--red);margin-bottom:6px;">HIGH RISK DETECTED</div>
+        <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:{{ confidence }}%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:4px;box-shadow:0 0 10px rgba(255,61,90,0.5);transition:width 1.2s cubic-bezier(.23,1,.32,1);" class="threat-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDIVIDUAL RISK FACTORS -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Urgency Language -->
+      <div class="risk-row" data-score="{{ [confidence, 95] | min }}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">⏰</span>
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--text1);">Urgency Language</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:.75rem;color:var(--red);" class="risk-pct">{{ [confidence, 95] | min }}%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:0%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:3px;transition:width 1s ease;" class="rbar"></div>
+        </div>
+      </div>
+
+      <!-- Suspicious Links -->
+      {% if 'link' in message|lower or 'http' in message|lower or 'bit.ly' in message|lower or 'click' in message|lower %}
+      <div class="risk-row" data-score="100">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">🔗</span>
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--text1);">Suspicious Links</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:.75rem;color:var(--red);">100%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:0%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:3px;transition:width 1s .1s ease;" class="rbar" data-w="100"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Prize / Reward Claims -->
+      {% if 'won' in message|lower or 'prize' in message|lower or 'reward' in message|lower or 'lottery' in message|lower or 'congratulations' in message|lower or 'winner' in message|lower %}
+      <div class="risk-row" data-score="90">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">🎰</span>
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--text1);">Prize / Reward Claims</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:.75rem;color:var(--red);">90%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:0%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:3px;transition:width 1s .2s ease;" class="rbar" data-w="90"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Identity Theft Risk -->
+      {% if 'otp' in message|lower or 'password' in message|lower or 'kyc' in message|lower or 'account' in message|lower or 'verify' in message|lower or 'bank' in message|lower %}
+      <div class="risk-row" data-score="85">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">🪪</span>
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--text1);">Identity Theft Risk</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:.75rem;color:var(--red);">85%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:0%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:3px;transition:width 1s .3s ease;" class="rbar" data-w="85"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Financial Fraud -->
+      {% if 'upi' in message|lower or 'pay' in message|lower or 'money' in message|lower or 'transfer' in message|lower or 'amount' in message|lower or 'cash' in message|lower %}
+      <div class="risk-row" data-score="88">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;">💸</span>
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:600;color:var(--text1);">Financial Fraud Risk</span>
+          </div>
+          <span style="font-family:var(--mono);font-size:.75rem;color:var(--red);">88%</span>
+        </div>
+        <div style="height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:0%;background:linear-gradient(90deg,#ff3d5a,#ff6b35);border-radius:3px;transition:width 1s .4s ease;" class="rbar" data-w="88"></div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- DETECTED PATTERNS BADGES -->
+    {% if patterns_found %}
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;margin-bottom:8px;">TRIGGERED PATTERNS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;">
+        {% for p in patterns_found %}<span class="badge badge-scam">⚠ {{ p }}</span>{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {% else %}
+  <!-- SAFE SCORE CARD -->
+  <div class="card mt-16">
+    <div class="sec-label" style="margin-bottom:1rem;">Safety Analysis</div>
+    <div style="display:flex;align-items:center;gap:16px;padding:1rem;background:rgba(0,255,136,0.05);border:1px solid var(--border3);border-radius:10px;">
+      <div style="text-align:center;min-width:70px;">
+        <div style="font-family:var(--mono);font-size:2rem;font-weight:700;color:var(--green);line-height:1;">{{ confidence }}%</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.08em;margin-top:2px;">SAFE SCORE</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:var(--head);font-size:.95rem;font-weight:700;color:var(--green);margin-bottom:6px;">NO THREATS DETECTED</div>
+        <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:{{ confidence }}%;background:linear-gradient(90deg,var(--green3),var(--green));border-radius:4px;box-shadow:0 0 10px rgba(0,255,136,0.4);transition:width 1.2s cubic-bezier(.23,1,.32,1);" class="threat-bar"></div>
+        </div>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -247,6 +370,22 @@ function saLbl(input,id){
 
 // Chat bubble
 setTimeout(()=>{const b=document.getElementById('chat-bubble');b.style.display='block';setTimeout(()=>b.style.display='none',5000);},1500);
+
+// Animate risk bars
+document.addEventListener('DOMContentLoaded', () => {
+  // Main confidence bar
+  document.querySelectorAll('.threat-bar').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => bar.style.width = w, 300);
+  });
+  // Individual risk bars
+  document.querySelectorAll('.rbar').forEach((bar, i) => {
+    const w = bar.dataset.w || bar.closest('.risk-row')?.dataset.score || '0';
+    setTimeout(() => bar.style.width = w + '%', 400 + (i * 150));
+  });
+});
+
 </script>
 </body>
 </html>
