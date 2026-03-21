@@ -14,7 +14,7 @@ from flask_cors import CORS
 import os
 import json
 import sqlite3
-import google.genai as genai
+from google import genai
 import csv
 import io
 import threading
@@ -24,7 +24,7 @@ app.secret_key = 'scam_detector_secret_key'
 CORS(app)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+genai_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 
