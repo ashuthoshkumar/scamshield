@@ -648,9 +648,14 @@ def export_report():
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
     from reportlab.lib.units import inch
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
     from datetime import datetime
-    from reportlab.pdfbase.ttfonts import TTFont
     import os
+
+    # Register Unicode font that supports symbols
+    pdfmetrics.registerFont(UnicodeCIDFont('HeiseiMin-W3'))
+    UFONT = 'HeiseiMin-W3'
 
     # Get data from form
     message    = request.form.get('message', '')
@@ -722,10 +727,10 @@ def export_report():
     elements.append(Spacer(1, 20))
 
     # ── VERDICT BOX ──
-    verdict_text = '[SCAM DETECTED]' if result == 'SCAM' else '[LOOKS LEGITIMATE]'
+    verdict_text = u'\u26a0  SCAM DETECTED' if result == 'SCAM' else u'\u2714  LOOKS LEGITIMATE'
     verdict_data = [[
         Paragraph(verdict_text, ParagraphStyle('verd',
-            fontName='Helvetica-Bold', fontSize=20,
+            fontName=UFONT, fontSize=20,
             textColor=ACCENT)),
         Paragraph(f'<font size="32" color="{ACCENT.hexval()}">{confidence}%</font><br/><font size="9" color="#4d8870">CONFIDENCE SCORE</font>',
             ParagraphStyle('conf', fontName='Helvetica',
@@ -813,7 +818,7 @@ def export_report():
             if p.strip():
                 clean_p = re_mod.sub(r'\\b|\\s\+|\(\?i\)|\[.*?\]|\(.*?\)|\^|\$|\\', '', p.strip())
                 clean_p = clean_p.strip().title() or p.strip()
-                elements.append(Paragraph('[!]  ' + clean_p, ParagraphStyle('pat', fontName='Helvetica', fontSize=9, textColor=RED, leftIndent=10, spaceAfter=4)))
+                elements.append(Paragraph(u'\u26a0  ' + clean_p, ParagraphStyle('pat', fontName=UFONT, fontSize=9, textColor=RED, leftIndent=10, spaceAfter=4)))
 
     # ── SAFETY ADVICE ──
     elements.append(Paragraph(
@@ -825,25 +830,25 @@ def export_report():
 
     if result == 'SCAM':
         advices = [
-            '[NO]  Do NOT click any links in this message',
-            '[NO]  Do NOT share OTP, password or personal info',
-            '[NO]  Do NOT make any payments or transfers',
-            '[YES] Block and report the sender immediately',
-            '[YES] Report to Cyber Crime Helpline: 1930',
-            '[YES] File complaint at: cybercrime.gov.in',
+            u'\u2716  Do NOT click any links in this message',
+            u'\u2716  Do NOT share OTP, password or personal info',
+            u'\u2716  Do NOT make any payments or transfers',
+            u'\u2714  Block and report the sender immediately',
+            u'\u2714  Report to Cyber Crime Helpline: 1930',
+            u'\u2714  File complaint at: cybercrime.gov.in',
         ]
         colors_list = [RED, RED, RED, GREEN, GREEN, GREEN]
     else:
         advices = [
-            '[YES] Message appears safe based on AI analysis',
-            '[YES] Always verify sender before sharing info',
-            '[YES] Stay alert — scammers evolve their tactics',
+            u'\u2714  Message appears safe based on AI analysis',
+            u'\u2714  Always verify sender before sharing info',
+            u'\u2714  Stay alert — scammers evolve their tactics',
         ]
         colors_list = [GREEN, GREEN, GREEN]
 
     for advice, col in zip(advices, colors_list):
         elements.append(Paragraph(advice,
-            ParagraphStyle('adv', fontName='Helvetica',
+            ParagraphStyle('adv', fontName=UFONT,
                 fontSize=9, textColor=col,
                 leftIndent=10, spaceAfter=5)))
 
