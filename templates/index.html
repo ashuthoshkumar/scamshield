@@ -105,8 +105,18 @@
   </div>
   {% else %}
   <div class="hero-cta">
-    <a href="#scanner" class="btn btn-primary btn-lg" id="scan-btn"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg> Scan Now — Free</a>
-    <a href="/register" class="btn btn-outline btn-lg"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg> Create Account</a>
+    <a href="#scanner" class="btn btn-primary btn-lg" id="scan-btn">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      Scan Now — Free
+    </a>
+    <button onclick="startLiveDemo()" class="btn btn-outline btn-lg" id="demo-btn">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+      Watch Live Demo
+    </button>
+    <a href="/register" class="btn btn-ghost btn-lg">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      Create Account
+    </a>
   </div>
   {% endif %}
   <div class="live-counter">
@@ -326,6 +336,98 @@ window.addEventListener('load', () => {
   }
 });
 setTimeout(()=>{const b=document.getElementById('chat-bubble');b.style.display='block';setTimeout(()=>b.style.display='none',5000);},3000);
+// ── LIVE DEMO ──────────────────────────────────
+const demoMessages = [
+  "Dear customer, your SBI account has been SUSPENDED due to suspicious activity. Update your KYC immediately at bit.ly/sbi-kyc-update or your account will be permanently blocked within 24 hours. Call 9876543210 now.",
+  "CONGRATULATIONS! You have WON ₹50,00,000 in the KBC Lucky Draw 2025! To claim your prize, send ₹500 processing fee to UPI: claim@winner.in and share your Aadhaar number.",
+  "Urgent: Your HDFC credit card has been blocked. Verify your details immediately: http://hdfc-verify.xyz/login — Failure to verify in 2 hours will result in permanent account closure."
+];
+
+let demoRunning = false;
+
+async function startLiveDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+
+  // Scroll to scanner
+  const scannerEl = document.getElementById('scanner');
+  const offset = 80;
+  const top = scannerEl.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior: 'smooth' });
+
+  await sleep(800);
+
+  // Switch to message tab
+  document.querySelectorAll('.stab')[0].click();
+
+  await sleep(400);
+
+  // Pick random demo message
+  const msg = demoMessages[Math.floor(Math.random() * demoMessages.length)];
+  const textarea = document.querySelector('textarea[name="message"]');
+  textarea.value = '';
+  textarea.focus();
+
+  // Show demo badge
+  showDemoBadge();
+
+  // Typewriter effect
+  await typeWriter(textarea, msg, 25);
+
+  await sleep(600);
+
+  // Flash the analyze button
+  const analyzeBtn = document.querySelector('#tab-msg .btn-primary');
+  analyzeBtn.style.transform = 'scale(1.05)';
+  analyzeBtn.style.boxShadow = '0 0 30px rgba(0,255,136,0.6)';
+  analyzeBtn.textContent = '⚡ Analyzing...';
+
+  await sleep(800);
+
+  // Submit the form
+  document.querySelector('#tab-msg form').submit();
+}
+
+function typeWriter(el, text, speed) {
+  return new Promise(resolve => {
+    let i = 0;
+    el.value = '';
+    const timer = setInterval(() => {
+      el.value += text[i];
+      i++;
+      if (i >= text.length) {
+        clearInterval(timer);
+        resolve();
+      }
+    }, speed);
+  });
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function showDemoBadge() {
+  // Remove existing badge if any
+  document.getElementById('demo-badge')?.remove();
+  const badge = document.createElement('div');
+  badge.id = 'demo-badge';
+  badge.innerHTML = `
+    <div style="
+      position:fixed;top:80px;right:20px;z-index:999;
+      background:var(--card);border:1px solid var(--green);
+      border-radius:10px;padding:10px 16px;
+      display:flex;align-items:center;gap:10px;
+      box-shadow:0 0 20px rgba(0,255,136,0.2);
+      animation:fadeUp .4s ease;
+    ">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1s infinite;"></div>
+      <span style="font-family:var(--mono);font-size:.72rem;color:var(--green);letter-spacing:.06em;">LIVE DEMO RUNNING</span>
+    </div>
+  `;
+  document.body.appendChild(badge);
+  setTimeout(() => badge.remove(), 8000);
+}
 </script>
 </body>
 </html>
