@@ -16,3 +16,5 @@ langdetect
 pytesseract
 requests
 werkzeug
+google-genai
+opencv-python-headless
