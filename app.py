@@ -808,14 +808,12 @@ def export_report():
                                    color=colors.HexColor('#0e1c1c')))
         elements.append(Spacer(1, 8))
         pattern_list = patterns.split(',')
+        import re as re_mod
         for p in pattern_list:
             if p.strip():
-                # Clean raw regex patterns to human readable
-                import re as re_mod
                 clean_p = re_mod.sub(r'\\b|\\s\+|\(\?i\)|\[.*?\]|\(.*?\)|\^|\$|\\', '', p.strip())
                 clean_p = clean_p.strip().title() or p.strip()
-                elements.append(Paragraph(
-                    f'[!]  {clean_p}',
+                elements.append(Paragraph('[!]  ' + clean_p, ParagraphStyle('pat', fontName='Helvetica', fontSize=9, textColor=RED, leftIndent=10, spaceAfter=4)))
 
     # ── SAFETY ADVICE ──
     elements.append(Paragraph(
