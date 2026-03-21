@@ -640,6 +640,235 @@ def service_worker():
     return send_from_directory('static', 'service-worker.js',
                                mimetype='application/javascript')
 
+# ─── PDF REPORT EXPORT ───────────────────────────────────
+@app.route('/export-report', methods=['POST'])
+def export_report():
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.units import inch
+    from datetime import datetime
+
+    # Get data from form
+    message    = request.form.get('message', '')
+    result     = request.form.get('result', '')
+    confidence = request.form.get('confidence', '')
+    language   = request.form.get('language', 'English')
+    patterns   = request.form.get('patterns', '')
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=50, leftMargin=50,
+                            topMargin=50, bottomMargin=50)
+
+    # Colors
+    GREEN  = colors.HexColor('#00cc6a')
+    RED    = colors.HexColor('#ff3d5a')
+    BLACK  = colors.HexColor('#020505')
+    DARK   = colors.HexColor('#0a1414')
+    GRAY   = colors.HexColor('#8bbfaa')
+    WHITE  = colors.white
+    ACCENT = GREEN if result != 'SCAM' else RED
+
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    title_style = ParagraphStyle('title',
+        fontName='Helvetica-Bold', fontSize=22,
+        textColor=WHITE, spaceAfter=4, leading=26)
+
+    sub_style = ParagraphStyle('sub',
+        fontName='Helvetica', fontSize=10,
+        textColor=GRAY, spaceAfter=6)
+
+    label_style = ParagraphStyle('label',
+        fontName='Helvetica-Bold', fontSize=8,
+        textColor=GRAY, spaceAfter=4,
+        leading=12, letterSpacing=1)
+
+    body_style = ParagraphStyle('body',
+        fontName='Helvetica', fontSize=10,
+        textColor=colors.HexColor('#b8bcd0'),
+        leading=16, spaceAfter=6)
+
+    verdict_style = ParagraphStyle('verdict',
+        fontName='Helvetica-Bold', fontSize=28,
+        textColor=ACCENT, spaceAfter=4, leading=32)
+
+    elements = []
+
+    # ── HEADER ──
+    header_data = [[
+        Paragraph('SCAMSHIELD', ParagraphStyle('logo',
+            fontName='Helvetica-Bold', fontSize=18,
+            textColor=GREEN)),
+        Paragraph(f'Scan Report<br/><font size="8" color="#4d8870">Generated: {datetime.now().strftime("%d %b %Y, %I:%M %p")}</font>',
+            ParagraphStyle('hdr', fontName='Helvetica',
+            fontSize=11, textColor=GRAY, alignment=2))
+    ]]
+    header_table = Table(header_data, colWidths=[3*inch, 3*inch])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), DARK),
+        ('TOPPADDING',    (0,0), (-1,-1), 16),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 16),
+        ('LEFTPADDING',   (0,0), (-1,-1), 20),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 20),
+        ('ROUNDEDCORNERS', (0,0), (-1,-1), [8,8,8,8]),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 20))
+
+    # ── VERDICT BOX ──
+    verdict_text = '⚠  SCAM DETECTED' if result == 'SCAM' else '✓  LOOKS LEGITIMATE'
+    verdict_data = [[
+        Paragraph(verdict_text, ParagraphStyle('verd',
+            fontName='Helvetica-Bold', fontSize=20,
+            textColor=ACCENT)),
+        Paragraph(f'<font size="32" color="{ACCENT.hexval()}">{confidence}%</font><br/><font size="9" color="#4d8870">CONFIDENCE SCORE</font>',
+            ParagraphStyle('conf', fontName='Helvetica',
+            fontSize=10, textColor=GRAY, alignment=2))
+    ]]
+    verdict_table = Table(verdict_data, colWidths=[3.5*inch, 2.5*inch])
+    bg = colors.HexColor('#0d1a0d') if result != 'SCAM' else colors.HexColor('#1a0d0d')
+    border = GREEN if result != 'SCAM' else RED
+    verdict_table.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0), (-1,-1), bg),
+        ('TOPPADDING',    (0,0), (-1,-1), 18),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 18),
+        ('LEFTPADDING',   (0,0), (-1,-1), 20),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 20),
+        ('BOX', (0,0), (-1,-1), 1, border),
+        ('ROUNDEDCORNERS', (0,0), (-1,-1), [8,8,8,8]),
+    ]))
+    elements.append(verdict_table)
+    elements.append(Spacer(1, 20))
+
+    # ── ANALYZED MESSAGE ──
+    elements.append(Paragraph('ANALYZED MESSAGE', label_style))
+    elements.append(HRFlowable(width='100%', thickness=0.5,
+                               color=colors.HexColor('#0e1c1c')))
+    elements.append(Spacer(1, 8))
+    clean_msg = message[:800] + ('...' if len(message) > 800 else '')
+    msg_data = [[Paragraph(clean_msg, body_style)]]
+    msg_table = Table(msg_data, colWidths=[6*inch])
+    msg_table.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0), (-1,-1), DARK),
+        ('TOPPADDING',    (0,0), (-1,-1), 14),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 14),
+        ('LEFTPADDING',   (0,0), (-1,-1), 16),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 16),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#0e1c1c')),
+        ('ROUNDEDCORNERS', (0,0), (-1,-1), [6,6,6,6]),
+    ]))
+    elements.append(msg_table)
+    elements.append(Spacer(1, 20))
+
+    # ── SCAN DETAILS ──
+    elements.append(Paragraph('SCAN DETAILS', label_style))
+    elements.append(HRFlowable(width='100%', thickness=0.5,
+                               color=colors.HexColor('#0e1c1c')))
+    elements.append(Spacer(1, 8))
+
+    details = [
+        ['Verdict',     result],
+        ['Confidence',  f'{confidence}%'],
+        ['Language',    language],
+        ['Scan Time',   datetime.now().strftime('%d %b %Y, %I:%M %p')],
+        ['Platform',    'ScamShield AI — CVR College of Engineering'],
+    ]
+    det_table = Table(details, colWidths=[1.8*inch, 4.2*inch])
+    det_table.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0), (0,-1), DARK),
+        ('BACKGROUND',    (1,0), (1,-1), colors.HexColor('#060d0d')),
+        ('TEXTCOLOR',     (0,0), (0,-1), GRAY),
+        ('TEXTCOLOR',     (1,0), (1,-1), colors.HexColor('#b8bcd0')),
+        ('FONTNAME',      (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME',      (1,0), (1,-1), 'Helvetica'),
+        ('FONTSIZE',      (0,0), (-1,-1), 9),
+        ('TOPPADDING',    (0,0), (-1,-1), 9),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 9),
+        ('LEFTPADDING',   (0,0), (-1,-1), 14),
+        ('ROWBACKGROUNDS',(0,0), (-1,-1),
+            [DARK, colors.HexColor('#060d0d')]),
+        ('LINEBELOW', (0,0), (-1,-2), 0.3,
+            colors.HexColor('#0e1c1c')),
+        ('BOX', (0,0), (-1,-1), 0.5,
+            colors.HexColor('#0e1c1c')),
+    ]))
+    elements.append(det_table)
+    elements.append(Spacer(1, 20))
+
+    # ── DETECTED PATTERNS ──
+    if patterns and result == 'SCAM':
+        elements.append(Paragraph('DETECTED THREAT PATTERNS', label_style))
+        elements.append(HRFlowable(width='100%', thickness=0.5,
+                                   color=colors.HexColor('#0e1c1c')))
+        elements.append(Spacer(1, 8))
+        pattern_list = patterns.split(',')
+        for p in pattern_list:
+            if p.strip():
+                elements.append(Paragraph(
+                    f'⚠  {p.strip()}',
+                    ParagraphStyle('pat', fontName='Helvetica',
+                        fontSize=9, textColor=RED,
+                        leftIndent=10, spaceAfter=4)))
+        elements.append(Spacer(1, 20))
+
+    # ── SAFETY ADVICE ──
+    elements.append(Paragraph(
+        'SAFETY RECOMMENDATIONS' if result == 'SCAM' else 'SAFETY REMINDER',
+        label_style))
+    elements.append(HRFlowable(width='100%', thickness=0.5,
+                               color=colors.HexColor('#0e1c1c')))
+    elements.append(Spacer(1, 8))
+
+    if result == 'SCAM':
+        advices = [
+            '✗  Do NOT click any links in this message',
+            '✗  Do NOT share OTP, password or personal info',
+            '✗  Do NOT make any payments or transfers',
+            '✓  Block and report the sender immediately',
+            '✓  Report to Cyber Crime Helpline: 1930',
+            '✓  File complaint at: cybercrime.gov.in',
+        ]
+        colors_list = [RED, RED, RED, GREEN, GREEN, GREEN]
+    else:
+        advices = [
+            '✓  Message appears safe based on AI analysis',
+            '✓  Always verify sender before sharing info',
+            '✓  Stay alert — scammers evolve their tactics',
+        ]
+        colors_list = [GREEN, GREEN, GREEN]
+
+    for advice, col in zip(advices, colors_list):
+        elements.append(Paragraph(advice,
+            ParagraphStyle('adv', fontName='Helvetica',
+                fontSize=9, textColor=col,
+                leftIndent=10, spaceAfter=5)))
+
+    elements.append(Spacer(1, 24))
+
+    # ── FOOTER ──
+    elements.append(HRFlowable(width='100%', thickness=0.5,
+                               color=colors.HexColor('#0e1c1c')))
+    elements.append(Spacer(1, 8))
+    elements.append(Paragraph(
+        'This report was generated by ScamShield AI — CVR College of Engineering. '
+        'For more information visit scamshield.onrender.com | '
+        'Cyber Crime Helpline: 1930',
+        ParagraphStyle('footer', fontName='Helvetica',
+            fontSize=7, textColor=GRAY,
+            alignment=1)))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    filename = f"scamshield_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    return Response(buffer.getvalue(),
+                    mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment; filename={filename}'})
+
 @app.route('/admin/export')
 def export_csv():
     if not session.get('admin'):
