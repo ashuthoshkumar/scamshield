@@ -25,6 +25,13 @@
   </div>
   {% set sc = namespace(v=0) %}{% set sf = namespace(v=0) %}
   {% for row in predictions %}{% if row[2]=='SCAM' %}{% set sc.v = sc.v+1 %}{% else %}{% set sf.v = sf.v+1 %}{% endif %}{% endfor %}
+  
+  <!-- SCAN HISTORY CHART -->
+<div class="card mb-24">
+  <div class="sec-label" style="margin-bottom:.8rem;">Scan Activity</div>
+  <div style="height:200px;"><canvas id="historyChart"></canvas></div>
+</div>
+
   <div class="stat-grid mb-24">
     <div class="stat-card"><div class="stat-num c-blue">{{ predictions|length }}</div><div class="stat-lbl">Total Scans</div></div>
     <div class="stat-card"><div class="stat-num c-red">{{ sc.v }}</div><div class="stat-lbl">Scams Caught</div></div>
@@ -61,5 +68,81 @@
 <footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/admin" class="footer-link">Admin</a></div><div class="footer-copy">© 2025 ScamShield</div></footer>
 <script>const cursor=document.getElementById("cursor"),ring=document.getElementById("cursor-ring");let mx=0,my=0,rx=0,ry=0;document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+"px";cursor.style.top=my+"px";});(function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+"px";ring.style.top=ry+"px";requestAnimationFrame(ar);})();
 setTimeout(()=>{const b=document.getElementById("chat-bubble");b.style.display="block";setTimeout(()=>b.style.display="none",5000);},2000);</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+const predictions = {{ predictions | tojson }};
+
+// Group scans by date
+const dateCounts = {};
+const scamCounts = {};
+
+predictions.forEach(row => {
+  // row[4] is timestamp — extract date part
+  const date = row[4] ? row[4].split(' ')[0] : 'Unknown';
+  dateCounts[date] = (dateCounts[date] || 0) + 1;
+  if (row[2] === 'SCAM') {
+    scamCounts[date] = (scamCounts[date] || 0) + 1;
+  }
+});
+
+// Sort dates
+const dates = Object.keys(dateCounts).sort();
+const totalData = dates.map(d => dateCounts[d]);
+const scamData  = dates.map(d => scamCounts[d] || 0);
+const safeData  = dates.map(d => (dateCounts[d] || 0) - (scamCounts[d] || 0));
+
+const ctx = document.getElementById('historyChart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: dates,
+    datasets: [
+      {
+        label: 'Scams',
+        data: scamData,
+        backgroundColor: 'rgba(255,61,90,0.7)',
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: 'Safe',
+        data: safeData,
+        backgroundColor: 'rgba(0,255,136,0.55)',
+        borderRadius: 4,
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#8bbfaa',
+          font: { size: 11, family: "'Share Tech Mono', monospace" }
+        }
+      }
+    },
+    scales: {
+      x: {
+        stacked: true,
+        ticks: { color: '#4d8870', font: { size: 10 } },
+        grid:  { color: 'rgba(0,255,136,0.04)' }
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: {
+          color: '#4d8870',
+          font: { size: 10 },
+          stepSize: 1
+        },
+        grid: { color: 'rgba(0,255,136,0.04)' }
+      }
+    }
+  }
+});
+</script>
 </body>
 </html>
