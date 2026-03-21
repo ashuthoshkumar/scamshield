@@ -115,6 +115,54 @@
     <div class="counter-item"><div class="counter-num">99.2%</div><div class="counter-lbl">Accuracy</div></div>
     <div class="counter-item"><div class="counter-num">&lt;1s</div><div class="counter-lbl">Response</div></div>
   </div>
+  <!-- LIVE NEWS TICKER -->
+{% if news %}
+<div style="background:var(--black2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;overflow:hidden;position:relative;">
+  <!-- Fade edges -->
+  <div style="position:absolute;left:0;top:0;bottom:0;width:80px;background:linear-gradient(90deg,var(--black2),transparent);z-index:2;pointer-events:none;"></div>
+  <div style="position:absolute;right:0;top:0;bottom:0;width:80px;background:linear-gradient(-90deg,var(--black2),transparent);z-index:2;pointer-events:none;"></div>
+
+  <!-- Label -->
+  <div style="position:absolute;left:0;top:0;bottom:0;display:flex;align-items:center;padding:0 16px;background:var(--black3);border-right:1px solid var(--border);z-index:3;">
+    <span style="font-family:var(--mono);font-size:.65rem;color:var(--green);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;">⚡ Live Feed</span>
+  </div>
+
+  <!-- Scrolling ticker -->
+  <div style="overflow:hidden;padding-left:130px;">
+    <div id="ticker-inner" style="display:flex;gap:0;animation:ticker 40s linear infinite;width:max-content;">
+      {% for article in news %}
+      <a href="{{ article.link }}" target="_blank"
+         style="display:inline-flex;align-items:center;gap:10px;padding:10px 28px;text-decoration:none;border-right:1px solid var(--border);white-space:nowrap;transition:background .2s;"
+         onmouseover="this.style.background='rgba(0,255,136,0.04)'"
+         onmouseout="this.style.background='transparent'">
+        <span style="font-family:var(--mono);font-size:.62rem;color:var(--red);letter-spacing:.06em;">⚠ SCAM ALERT</span>
+        <span style="font-size:.82rem;color:var(--text2);">{{ article.title }}</span>
+        <span style="font-family:var(--mono);font-size:.6rem;color:var(--text3);">{{ article.published[:10] if article.published else '' }}</span>
+      </a>
+      {% endfor %}
+      <!-- Duplicate for seamless loop -->
+      {% for article in news %}
+      <a href="{{ article.link }}" target="_blank"
+         style="display:inline-flex;align-items:center;gap:10px;padding:10px 28px;text-decoration:none;border-right:1px solid var(--border);white-space:nowrap;transition:background .2s;"
+         onmouseover="this.style.background='rgba(0,255,136,0.04)'"
+         onmouseout="this.style.background='transparent'">
+        <span style="font-family:var(--mono);font-size:.62rem;color:var(--red);letter-spacing:.06em;">⚠ SCAM ALERT</span>
+        <span style="font-size:.82rem;color:var(--text2);">{{ article.title }}</span>
+        <span style="font-family:var(--mono);font-size:.6rem;color:var(--text3);">{{ article.published[:10] if article.published else '' }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+#ticker-inner:hover { animation-play-state: paused; }
+</style>
 </section>
 
 <section class="hiw-section">

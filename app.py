@@ -32,7 +32,11 @@ genai.configure(api_key=GEMINI_API_KEY)
 @app.route('/')
 def index():
     user = session.get('user')
-    return render_template('index.html', user=user)
+    try:
+        news = get_scam_news(max_articles=10)
+    except:
+        news = []
+    return render_template('index.html', user=user, news=news)
 
 
 # ─── REGISTER ────────────────────────────────────────────
