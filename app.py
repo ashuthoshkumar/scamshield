@@ -148,17 +148,15 @@ def predict():
     ml_is_scam = ml_result['result'] == 'SCAM'
     ml_confidence = ml_result['confidence']
     patterns_found = pattern_result['patterns_found']
-
-    # Only trust patterns if ML ALSO agrees, OR if patterns are very strong (3+ found)
-    patterns_strong = len(pattern_result.get('patterns_found', [])) >= 3
+    patterns_is_scam = pattern_result['is_scam']
+    confidence_boost = pattern_result.get('confidence_boost', 0)
 
     if ml_is_scam:
         final_result = 'SCAM'
-        confidence = ml_confidence
-    elif patterns_strong and ml_confidence >= 45:
-        # Patterns very strong + ML is uncertain → flag as scam
+        confidence = min(99.9, ml_confidence + confidence_boost)
+    elif patterns_is_scam:
         final_result = 'SCAM'
-        confidence = min(75.0, ml_confidence + 10)
+        confidence = min(75.0, ml_confidence + confidence_boost)
     else:
         final_result = 'LEGITIMATE'
         confidence = ml_confidence

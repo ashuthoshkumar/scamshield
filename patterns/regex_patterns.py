@@ -1,37 +1,97 @@
 import re
 
-SCAM_PATTERNS = [
-    r'\botp\b',
-    r'\bclick here\b',
+# ── HIGH CONFIDENCE patterns — these alone are enough to flag as scam
+HIGH_CONFIDENCE_PATTERNS = [
     r'\bclaim your prize\b',
     r'\byou have won\b',
-    r'\burgent\b',
-    r'\bverify your\b',
-    r'\bbank account\b.*\bsuspended\b',
-    r'\bfree\b.*\biphone\b',
     r'\blottery\b',
     r'\bcredit card details\b',
     r'\bsend your\b.*\bdetails\b',
-    r'\bloan approved\b',
-    r'\bno documents\b',
+    r'\bloan approved\b.*\bno documents\b',
     r'\bearn\b.*\bper month\b',
-    r'\bwork from home\b.*\beam\b',
-    r'http[s]?://(?!www\.(google|amazon|flipkart|hdfc|sbi))\S+',
+    r'\bwork from home\b.*\bearn\b',
+    r'\bkyc\b.*\bexpir\b',
+    r'\bshare\b.*\botp\b',
+    r'\benter\b.*\botp\b',
+    r'\bverify\b.*\botp\b',
+    r'\baccount\b.*\bsuspended\b.*\bclick\b',
+    r'\bbank\b.*\bblocked\b.*\bupdate\b',
+    r'bit\.ly|tinyurl|goo\.gl',                         # URL shorteners
+    r'http[s]?://(?!.*\.(gov\.in|sbi\.co\.in|hdfcbank\.com|icicibank\.com|'
+    r'axisbank\.com|paytm\.com|phonepe\.com|google\.com|amazon\.(in|com)|'
+    r'flipkart\.com|irctc\.co\.in|indiapost\.gov\.in))\S+\.(xyz|tk|ml|ga|cf|gq)',
 ]
+
+# ── LOW CONFIDENCE patterns — need multiple to flag
+LOW_CONFIDENCE_PATTERNS = [
+    r'\botp\b',
+    r'\burgent\b',
+    r'\bverify\b',
+    r'\bclick here\b',
+    r'\bfree\b',
+    r'\bwinner\b',
+    r'\bprize\b',
+    r'\bclaim\b',
+    r'\bblocked\b',
+    r'\bsuspended\b',
+]
+
+# ── Known legitimate sender patterns — never flag these
+LEGITIMATE_PATTERNS = [
+    r'\b(sbi|hdfc|icici|axis|kotak|pnb|bob|union bank|canara)\b.*\b(credited|debited|balance|avl bal)\b',
+    r'\b(a\/c|ac|account)\b.*\b(credited|debited|rs\.?|inr)\b',
+    r'\botp\b.*\bdo not share\b',
+    r'\bdo not share\b.*\botp\b',
+    r'\bvalid for\b.*\b(minutes|mins|seconds)\b',
+    r'\b(irctc|pnr|train|flight|indigo|airindia)\b',
+    r'\b(flipkart|amazon|swiggy|zomato|ola|uber)\b.*\b(order|delivery|otp)\b',
+    r'\b1800\d{6,}\b',                                   # toll-free numbers are legit
+    r'\b(epfo|uidai|ration|aadhaar update)\b',
+    r'avl bal',
+    r'mob bk',
+    r'ref no \d+',
+]
+
 
 def check_patterns(text):
     text_lower = text.lower()
-    patterns_found = []
 
-    for pattern in SCAM_PATTERNS:
+    # First check if it matches known legitimate patterns — if yes, never flag
+    for pattern in LEGITIMATE_PATTERNS:
         if re.search(pattern, text_lower):
-            patterns_found.append(pattern)
+            return {
+                'is_scam': False,
+                'patterns_found': [],
+                'confidence_boost': 0
+            }
+
+    # Check high confidence patterns — one match is enough
+    high_found = []
+    for pattern in HIGH_CONFIDENCE_PATTERNS:
+        if re.search(pattern, text_lower):
+            high_found.append(pattern)
+
+    if high_found:
+        return {
+            'is_scam': True,
+            'patterns_found': high_found,
+            'confidence_boost': 20
+        }
+
+    # Check low confidence patterns — need 3+ to flag
+    low_found = []
+    for pattern in LOW_CONFIDENCE_PATTERNS:
+        if re.search(pattern, text_lower):
+            low_found.append(pattern)
 
     return {
-        'is_scam': len(patterns_found) > 0,
-        'patterns_found': patterns_found
+        'is_scam': len(low_found) >= 3,
+        'patterns_found': low_found,
+        'confidence_boost': len(low_found) * 5
     }
-    # ── URL SCANNER ──────────────────────────────────────────
+
+
+# ── URL SCANNER ──────────────────────────────────────────
 
 SUSPICIOUS_KEYWORDS = [
     'login', 'verify', 'account', 'secure', 'update',
@@ -57,7 +117,6 @@ def scan_url(url):
     issues = []
     risk_score = 0
 
-    # Check if trusted domain
     for domain in TRUSTED_DOMAINS:
         if domain in url_lower:
             return {
@@ -68,42 +127,32 @@ def scan_url(url):
                 'url': url
             }
 
-    # Check for URL shortener
     for shortener in URL_SHORTENERS:
         if shortener in url_lower:
             issues.append('⚠️ URL shortener detected — real destination is hidden')
             risk_score += 30
 
-    # Check for IP address instead of domain
     if re.search(r'http[s]?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url_lower):
         issues.append('🚨 IP address used instead of domain name')
         risk_score += 40
 
-    # Check for suspicious keywords in URL
-    found_keywords = []
-    for keyword in SUSPICIOUS_KEYWORDS:
-        if keyword in url_lower:
-            found_keywords.append(keyword)
+    found_keywords = [kw for kw in SUSPICIOUS_KEYWORDS if kw in url_lower]
     if found_keywords:
         issues.append(f'⚠️ Suspicious keywords found: {", ".join(found_keywords)}')
         risk_score += len(found_keywords) * 10
 
-    # Check for excessive subdomains
     try:
         domain_part = url_lower.split('/')[2] if '/' in url_lower else url_lower
-        subdomain_count = domain_part.count('.')
-        if subdomain_count > 3:
+        if domain_part.count('.') > 3:
             issues.append('⚠️ Excessive subdomains detected')
             risk_score += 20
     except:
         pass
 
-    # Check for http (not https)
     if url_lower.startswith('http://'):
         issues.append('⚠️ Not secure — uses HTTP instead of HTTPS')
         risk_score += 15
 
-    # Check for fake bank patterns
     fake_bank_patterns = [
         r'sbi[^.]*\.(?!co\.in)',
         r'hdfc[^.]*\.(?!com)',
@@ -116,12 +165,10 @@ def scan_url(url):
             risk_score += 50
             break
 
-    # Check for long suspicious URLs
     if len(url) > 100:
         issues.append('⚠️ Unusually long URL')
         risk_score += 10
 
-    # Determine risk level
     if risk_score == 0:
         risk_level = 'SAFE'
         is_safe = True
