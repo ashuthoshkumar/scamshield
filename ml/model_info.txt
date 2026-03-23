@@ -1,2 +1,5 @@
-Best Model: NaiveBayes
-Accuracy: 100.00%
+Best Model: SVM
+Test Accuracy: 99.01%
+CV F1 Mean: 0.9713
+Training samples: 4457
+Test samples: 1115
