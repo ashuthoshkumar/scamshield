@@ -145,13 +145,23 @@ def predict():
     pattern_result = check_patterns(message)
     ml_result = predict_message(message)
 
-    if pattern_result['is_scam'] or ml_result['result'] == 'SCAM':
+    ml_is_scam = ml_result['result'] == 'SCAM'
+    ml_confidence = ml_result['confidence']
+    patterns_found = pattern_result['patterns_found']
+
+    # Only trust patterns if ML ALSO agrees, OR if patterns are very strong (3+ found)
+    patterns_strong = len(pattern_result.get('patterns_found', [])) >= 3
+
+    if ml_is_scam:
         final_result = 'SCAM'
+        confidence = ml_confidence
+    elif patterns_strong and ml_confidence >= 45:
+        # Patterns very strong + ML is uncertain → flag as scam
+        final_result = 'SCAM'
+        confidence = min(75.0, ml_confidence + 10)
     else:
         final_result = 'LEGITIMATE'
-
-    confidence = ml_result['confidence']
-    patterns_found = pattern_result['patterns_found']
+        confidence = ml_confidence
     # WhatsApp Forward Detection
     whatsapp_signals = [
         'forwarded', 'forward this', 'share this', 'send to all',
