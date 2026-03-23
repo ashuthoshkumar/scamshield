@@ -3,22 +3,17 @@ import re
 import os
 import numpy as np
 
-# FIXED PATH — predict.py is inside ml/ folder, so no extra "ml/"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))   # this is /src/ml
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load all models from SAME folder
+# Load only the files that actually exist
 with open(os.path.join(BASE_DIR, 'model.pkl'), 'rb') as f:
     model = pickle.load(f)
 with open(os.path.join(BASE_DIR, 'vectorizer.pkl'), 'rb') as f:
     vectorizer = pickle.load(f)
 with open(os.path.join(BASE_DIR, 'label_encoder.pkl'), 'rb') as f:
     le = pickle.load(f)
-with open(os.path.join(BASE_DIR, 'feature_cols.pkl'), 'rb') as f:
-    feature_cols = pickle.load(f)
 
-# Rest of your code remains exactly same (helpline function + preprocess + predict_message)
-# Just paste your previous predict_message function here ↓
-
+# ================== HELPLINE + PREPROCESS + PREDICT ==================
 OFFICIAL_HELPLINES = {
     "union bank of india": ["1800222243", "1800222244", "18002082244", "18004251515", "18004253555", "18002333"]
 }
@@ -51,9 +46,10 @@ def predict_message(message):
     processed = preprocess(message)
     vec = vectorizer.transform([processed])
     
+    # Hardcoded features (no need for feature_cols.pkl)
     feat = {
         'has_tollfree_1800': 1 if '1800' in message else 0,
-        'has_unionbank': 1 if 'union bank' in message.lower() or 'unionbank' in message.lower() else 0,
+        'has_unionbank': 1 if any(x in message.lower() for x in ['union bank', 'unionbank']) else 0,
         'has_ifnotyou': 1 if 'if not you' in message.lower() else 0,
         'small_amount': 1 if re.search(r'rs\.?\s*[0-9]', message.lower()) else 0,
         'ref_no': 1 if 'ref no' in message.lower() else 0,
@@ -67,16 +63,16 @@ def predict_message(message):
     adjustment = helpline_adjustment(message)
     try:
         proba = model.predict_proba(final_input)[0]
-        scam_prob = proba[1] if le.inverse_transform([1])[0] == 'SCAM' else proba[0]
+        scam_prob = proba[1] if 'SCAM' in le.classes_ else proba[0]
         scam_prob = max(0, min(1, scam_prob + adjustment))
         confidence = round(scam_prob * 100, 2) if result == 'SCAM' else round((1 - scam_prob) * 100, 2)
     except:
-        confidence = 25.0 if result == 'LEGITIMATE' else 75.0
+        confidence = 20.0 if result == 'LEGITIMATE' else 80.0
     
     return {
         'result': result,
         'confidence': confidence,
-        'reason': "Official Union Bank number matched ✓ Safe" if adjustment < -0.4 else "Pattern detected"
+        'reason': "✅ Official Union Bank helpline matched → LEGITIMATE" if adjustment < -0.4 else "Pattern checked"
     }
 
-print("✅ predict.py loaded successfully (fixed path)")
+print("✅ ml/predict.py loaded successfully on Render!")
