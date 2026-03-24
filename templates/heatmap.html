@@ -7,9 +7,12 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 .heatmap-wrap{max-width:1200px;margin:0 auto;padding:84px 1.5rem 4rem;}
-#map{height:580px;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+#map{height:600px;border-radius:14px;border:1px solid var(--border);overflow:hidden;box-shadow:0 0 40px rgba(0,255,136,0.05);}
 .leaflet-container{background:#060d0d!important;}
-.leaflet-tile{filter:brightness(0.3) saturate(0.2)!important;}
+.leaflet-control-zoom{border:1px solid var(--border)!important;border-radius:8px!important;overflow:hidden;}
+.leaflet-control-zoom a{background:var(--card)!important;color:var(--text1)!important;border-color:var(--border)!important;font-size:16px!important;line-height:28px!important;width:28px!important;height:28px!important;}
+.leaflet-control-zoom a:hover{background:var(--greendim)!important;color:var(--green)!important;}
+.leaflet-tooltip{background:transparent!important;border:none!important;box-shadow:none!important;padding:0!important;}
 .map-layout{display:grid;grid-template-columns:1fr 320px;gap:1.25rem;margin-top:1.5rem;}
 .sidebar{display:flex;flex-direction:column;gap:1rem;}
 .info-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem;}
@@ -76,6 +79,9 @@
     <!-- MAP -->
     <div>
       <div id="map"></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+        <button onclick="resetMapView()" style="font-family:var(--mono);font-size:.65rem;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;" onmouseover="this.style.color='var(--green)';this.style.borderColor='var(--border3)'" onmouseout="this.style.color='var(--text3)';this.style.borderColor='var(--border)'">↺ Reset View</button>
+      </div>
       <!-- LEGEND -->
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-top:1rem;">
         <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;margin-bottom:.75rem;text-transform:uppercase;">// Risk Legend — Source: NCRB 2023, I4C 2024</div>
@@ -198,30 +204,50 @@ function formatNum(n) {
 const map = L.map('map', {
   center: [22.5, 82.0],
   zoom: 5,
+  minZoom: 4,
+  maxZoom: 8,
   zoomControl: true,
   scrollWheelZoom: true,
-  attributionControl: false
+  doubleClickZoom: true,
+  attributionControl: false,
+  zoomSnap: 0.5,
+  zoomDelta: 0.5
 });
 
-// Dark tile layer
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  maxZoom: 10, minZoom: 4
+// High quality dark tile layer (no brightness filter needed)
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  maxZoom: 8, minZoom: 4,
+  subdomains: 'abcd'
 }).addTo(map);
+
+// Custom zoom control position
+map.zoomControl.setPosition('topright');
 
 let geojsonLayer = null;
 let currentFilter = 'all';
 
-// Load India GeoJSON
-fetch('https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson')
-  .then(r => r.json())
-  .then(data => {
-    indiaGeoJSON = data;
-    renderMap('all');
-    buildRankings('all');
-  })
-  .catch(() => {
-    document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-family:var(--mono);font-size:.8rem;">Map requires internet connection to load GeoJSON data</div>';
-  });
+// Try multiple GeoJSON sources for best quality
+const GEOJSON_SOURCES = [
+  'https://raw.githubusercontent.com/Subhash9325/GeoJson-Data-of-Indian-States/master/Indian_States',
+  'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson',
+];
+
+function loadGeoJSON(sources, idx = 0) {
+  if (idx >= sources.length) {
+    document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-family:var(--mono);font-size:.8rem;">Map requires internet connection</div>';
+    return;
+  }
+  fetch(sources[idx])
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(data => {
+      indiaGeoJSON = data;
+      renderMap('all');
+      buildRankings('all');
+    })
+    .catch(() => loadGeoJSON(sources, idx + 1));
+}
+
+loadGeoJSON(GEOJSON_SOURCES);
 
 let indiaGeoJSON = null;
 
@@ -259,9 +285,9 @@ function renderMap(filter) {
       const color = getStateColor(name, filter);
       return {
         fillColor: color,
-        fillOpacity: 0.72,
-        color: '#0a1414',
-        weight: 1.5,
+        fillOpacity: 0.75,
+        color: '#050e0e',
+        weight: 1,
         opacity: 1
       };
     },
@@ -271,29 +297,39 @@ function renderMap(filter) {
 
       layer.on({
         mouseover: e => {
-          e.target.setStyle({ fillOpacity: 0.9, weight: 2.5, color: '#00ff88' });
+          e.target.setStyle({ fillOpacity: 0.95, weight: 2, color: '#00ff88' });
+          e.target.bringToFront();
           if (match) {
             const [sName, d] = match;
             layer.bindTooltip(`
-              <div style="font-family:'Share Tech Mono',monospace;font-size:12px;background:#0a1414;border:1px solid rgba(0,255,136,0.3);padding:10px 14px;border-radius:8px;color:#e8fff4;min-width:180px;">
+              <div style="font-family:'Share Tech Mono',monospace;font-size:12px;background:#0a1414;border:1px solid rgba(0,255,136,0.3);padding:10px 14px;border-radius:8px;color:#e8fff4;min-width:180px;pointer-events:none;">
                 <div style="font-weight:700;font-size:14px;color:#00ff88;margin-bottom:5px;">${sName}</div>
                 <div style="color:#ff3d5a;margin-bottom:3px;">🚨 ${formatNum(d.complaints)} complaints</div>
                 <div style="color:#8bbfaa;margin-bottom:3px;">📋 ${d.cases.toLocaleString()} FIRs</div>
                 <div style="color:#ffaa00;">💸 ₹${d.loss_cr}Cr lost</div>
               </div>
-            `, { permanent: false, sticky: true, className: 'custom-tooltip' }).openTooltip();
+            `, { permanent: false, sticky: true, className: 'custom-tooltip', offset: [15, 0] }).openTooltip();
           }
         },
         mouseout: e => {
           geojsonLayer.resetStyle(e.target);
           layer.closeTooltip();
         },
-        click: () => {
-          if (match) showStateInfo(match[0], match[1]);
+        click: e => {
+          if (match) {
+            showStateInfo(match[0], match[1]);
+            // Zoom into clicked state smoothly
+            map.fitBounds(e.target.getBounds(), { padding: [40, 40], maxZoom: 7, animate: true, duration: 0.8 });
+          }
         }
       });
     }
   }).addTo(map);
+
+  // Fit map to India bounds after loading
+  if (filter === 'all' && geojsonLayer) {
+    map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20], animate: false });
+  }
 }
 
 function showStateInfo(name, d) {
@@ -360,7 +396,14 @@ function buildRankings(filter) {
   }, 100);
 }
 
-function applyFilter(filter, btn) {
+function resetMapView() {
+  if (geojsonLayer) {
+    map.fitBounds(geojsonLayer.getBounds(), { padding: [20, 20], animate: true, duration: 0.8 });
+  } else {
+    map.setView([22.5, 82.0], 5, { animate: true });
+  }
+}
+
   document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   currentFilter = filter;
