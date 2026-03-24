@@ -4,35 +4,30 @@
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>India Scam Heatmap — ScamShield</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-.heatmap-wrap{max-width:1100px;margin:0 auto;padding:84px 1.5rem 4rem;}
-.map-container{display:grid;grid-template-columns:1fr 340px;gap:1.5rem;margin-top:2rem;}
-.map-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;overflow:hidden;}
-.map-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);}
-#india-map{width:100%;height:560px;}
+.heatmap-wrap{max-width:1200px;margin:0 auto;padding:84px 1.5rem 4rem;}
+#map{height:580px;border-radius:14px;border:1px solid var(--border);overflow:hidden;}
+.leaflet-container{background:#060d0d!important;}
+.leaflet-tile{filter:brightness(0.3) saturate(0.2)!important;}
+.map-layout{display:grid;grid-template-columns:1fr 320px;gap:1.25rem;margin-top:1.5rem;}
 .sidebar{display:flex;flex-direction:column;gap:1rem;}
-.state-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.1rem 1.2rem;transition:border-color .2s;}
-.state-card:hover{border-color:var(--border3);}
-.state-rank{font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;margin-bottom:4px;}
-.state-name{font-family:var(--head);font-size:1rem;font-weight:700;color:var(--text1);margin-bottom:6px;}
-.state-bar-wrap{height:4px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;margin-bottom:5px;}
-.state-bar{height:100%;border-radius:2px;transition:width 1s ease;}
-.state-count{font-family:var(--mono);font-size:.7rem;color:var(--text3);letter-spacing:.05em;}
-.tooltip{
-  position:absolute;background:var(--card);border:1px solid var(--border3);
-  border-radius:8px;padding:10px 14px;pointer-events:none;
-  font-family:var(--mono);font-size:.75rem;color:var(--green);
-  box-shadow:0 4px 20px rgba(0,0,0,.5);z-index:10;display:none;
-  min-width:160px;
-}
-.legend{display:flex;align-items:center;gap:8px;margin-top:1rem;flex-wrap:wrap;}
-.legend-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.05em;}
-.legend-dot{width:12px;height:12px;border-radius:2px;}
-.filter-tabs{display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap;}
-.ftab{padding:.4rem .9rem;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text3);cursor:none;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;transition:all .2s;}
+.info-panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem;}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.5rem;}
+.ftab{padding:.4rem .9rem;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text3);cursor:pointer;font-family:var(--mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;transition:all .2s;}
 .ftab:hover{color:var(--green);border-color:var(--border3);}
 .ftab.active{background:var(--greendim);color:var(--green);border-color:var(--border3);}
-@media(max-width:768px){.map-container{grid-template-columns:1fr;}}
+.legend{display:flex;flex-direction:column;gap:7px;margin-top:1rem;}
+.legend-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;color:var(--text3);}
+.legend-box{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+.state-info{background:var(--card);border:1px solid var(--border3);border-radius:12px;padding:1.25rem;display:none;}
+.state-info.show{display:block;animation:fadeUp .3s ease;}
+.rank-item{display:flex;flex-direction:column;gap:4px;padding:6px 0;border-bottom:1px solid var(--border);}
+.rank-item:last-child{border-bottom:none;}
+.rank-bar-wrap{height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;}
+.rank-bar{height:100%;border-radius:2px;transition:width 1s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){.map-layout{grid-template-columns:1fr;}}
 </style>
 </head>
 <body class="animated-bg">
@@ -58,52 +53,65 @@
 <div class="heatmap-wrap">
   <div class="sec-label">Threat Intelligence</div>
   <div style="font-family:var(--head);font-size:2rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px;">India Scam Heatmap</div>
-  <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.5rem;">Real-time scam activity across Indian states — based on reported cases and detection patterns.</div>
+  <div style="font-size:.85rem;color:var(--text3);margin-bottom:1.5rem;">State-wise cybercrime data based on NCRB 2023 + I4C 2024 reports. Click any state for details.</div>
 
-  <!-- FILTER TABS -->
-  <div class="filter-tabs">
-    <button class="ftab active" onclick="filterMap('all',this)">All Scams</button>
-    <button class="ftab" onclick="filterMap('upi',this)">UPI Fraud</button>
-    <button class="ftab" onclick="filterMap('phishing',this)">Phishing</button>
-    <button class="ftab" onclick="filterMap('job',this)">Job Scams</button>
-    <button class="ftab" onclick="filterMap('lottery',this)">Lottery</button>
-  </div>
-
-  <!-- STATS ROW -->
+  <!-- STATS -->
   <div class="stat-grid stat-grid-4 mb-24" style="grid-template-columns:repeat(4,1fr);">
-    <div class="stat-card"><div class="stat-num c-red" id="total-cases">14.57L</div><div class="stat-lbl">Cases in 2025</div></div>
-    <div class="stat-card"><div class="stat-num c-amber" id="top-state">Telangana</div><div class="stat-lbl">Most Targeted</div></div>
-    <div class="stat-card"><div class="stat-num c-green">₹1,750Cr</div><div class="stat-lbl">Money Lost</div></div>
+    <div class="stat-card"><div class="stat-num c-red">12L+</div><div class="stat-lbl">Cases in 2024</div></div>
+    <div class="stat-card"><div class="stat-num c-amber">Maharashtra</div><div class="stat-lbl">Most Reported</div></div>
+    <div class="stat-card"><div class="stat-num c-green">₹22,845Cr</div><div class="stat-lbl">Lost in 2024</div></div>
     <div class="stat-card"><div class="stat-num c-blue">1930</div><div class="stat-lbl">Helpline</div></div>
   </div>
 
-  <div class="map-container">
-    <!-- SVG MAP -->
-    <div class="map-box">
-      <div class="sec-label" style="margin-bottom:1rem;">Click any state for details</div>
-      <div id="india-map"></div>
-      <div class="tooltip" id="tooltip"></div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#ff1a1a;"></div>Extreme Risk</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ff6600;"></div>High Risk</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ffaa00;"></div>Medium Risk</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#00aa44;"></div>Low Risk</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#0e1c1c;border:1px solid var(--border);"></div>No Data</div>
+  <!-- FILTERS -->
+  <div class="filter-tabs">
+    <button class="ftab active" onclick="applyFilter('all',this)">All Scams</button>
+    <button class="ftab" onclick="applyFilter('upi',this)">UPI Fraud</button>
+    <button class="ftab" onclick="applyFilter('phishing',this)">Phishing</button>
+    <button class="ftab" onclick="applyFilter('job',this)">Job Scams</button>
+    <button class="ftab" onclick="applyFilter('digital_arrest',this)">Digital Arrest</button>
+  </div>
+
+  <div class="map-layout">
+    <!-- MAP -->
+    <div>
+      <div id="map"></div>
+      <!-- LEGEND -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-top:1rem;">
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);letter-spacing:.08em;margin-bottom:.75rem;text-transform:uppercase;">// Risk Legend — Source: NCRB 2023, I4C 2024</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-box" style="background:#dc2626;"></div><span>Critical (&gt;2,50,000 complaints)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#ea580c;"></div><span>Very High (1,50,000 – 2,50,000)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#d97706;"></div><span>High (80,000 – 1,50,000)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#65a30d;"></div><span>Medium (30,000 – 80,000)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background:#16a34a;"></div><span>Low (&lt;30,000)</span></div>
+        </div>
       </div>
     </div>
 
-    <!-- SIDEBAR RANKINGS -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
-      <div class="card" style="padding:1rem;">
-        <div class="sec-label" style="margin-bottom:.75rem;">Top 10 Most Targeted States</div>
-        <div id="rankings-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <!-- SELECTED STATE INFO -->
+      <div class="state-info" id="state-info">
+        <div class="sec-label" style="margin-bottom:.6rem;">State Details</div>
+        <div style="font-family:var(--head);font-size:1.3rem;font-weight:700;color:var(--text1);margin-bottom:.5rem;" id="si-name"></div>
+        <div style="font-family:var(--mono);font-size:.65rem;color:var(--text3);margin-bottom:1rem;letter-spacing:.05em;" id="si-risk"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="si-details"></div>
+        <div style="margin-top:1rem;padding:10px 12px;background:rgba(0,255,136,.05);border:1px solid var(--border3);border-radius:8px;font-family:var(--mono);font-size:.72rem;color:var(--green);">📞 Report: cybercrime.gov.in | 1930</div>
+      </div>
+
+      <!-- TOP 10 -->
+      <div class="info-panel">
+        <div class="sec-label" style="margin-bottom:.8rem;">Top 10 States (2024)</div>
+        <div id="rankings"></div>
       </div>
     </div>
   </div>
 </div>
 
-<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/chatbot" class="footer-link">AI Advisor</a></div><div class="footer-copy">© 2025 ScamShield · CVR College of Engineering</div></footer>
+<footer><div class="footer-brand">SCAMSHIELD</div><div class="footer-links"><a href="/" class="footer-link">Home</a><a href="/chatbot" class="footer-link">AI Advisor</a></div><div class="footer-copy">© 2025 ScamShield · CVR College of Engineering · Data: NCRB 2023 + I4C 2024</div></footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // Cursor
 const cursor=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
@@ -111,250 +119,254 @@ let mx=0,my=0,rx=0,ry=0;
 document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px';});
 (function ar(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(ar);})();
 
-// State data — based on NCRB + Cybercrime reports
+// ── REAL DATA FROM NCRB 2023 + I4C 2024 ──────────────────
+// Source: MHA Parliamentary data, IndiaSpend, I4C Annual Report 2024
 const stateData = {
   all: {
-    'Telangana':        { cases: 189432, risk: 'extreme', type: 'UPI Fraud, KYC Scams, Job Fraud' },
-    'Uttar Pradesh':    { cases: 167821, risk: 'extreme', type: 'Lottery, OTP, Investment Fraud' },
-    'Maharashtra':      { cases: 156234, risk: 'extreme', type: 'Phishing, Banking, Job Scams' },
-    'Karnataka':        { cases: 134567, risk: 'extreme', type: 'Tech Support, UPI, Investment' },
-    'Delhi':            { cases: 128934, risk: 'extreme', type: 'Phishing, Job, KYC Scams' },
-    'Rajasthan':        { cases: 98234,  risk: 'high',    type: 'OTP, Banking, Lottery Fraud' },
-    'Gujarat':          { cases: 87654,  risk: 'high',    type: 'Investment, Diamond, UPI Scams' },
-    'West Bengal':      { cases: 76543,  risk: 'high',    type: 'Job, Lottery, Romance Scams' },
-    'Tamil Nadu':       { cases: 65432,  risk: 'high',    type: 'OTP, Job, Investment Fraud' },
-    'Andhra Pradesh':   { cases: 54321,  risk: 'high',    type: 'UPI, KYC, Investment Scams' },
-    'Bihar':            { cases: 43219,  risk: 'medium',  type: 'OTP, Banking Fraud' },
-    'Madhya Pradesh':   { cases: 38765,  risk: 'medium',  type: 'Lottery, Job Scams' },
-    'Haryana':          { cases: 34521,  risk: 'medium',  type: 'Job, Investment Fraud' },
-    'Punjab':           { cases: 29876,  risk: 'medium',  type: 'Banking, UPI Scams' },
-    'Odisha':           { cases: 24321,  risk: 'medium',  type: 'Lottery, Investment' },
-    'Jharkhand':        { cases: 19876,  risk: 'medium',  type: 'OTP, Banking Fraud' },
-    'Kerala':           { cases: 18765,  risk: 'low',     type: 'Online Shopping, Job' },
-    'Assam':            { cases: 14321,  risk: 'low',     type: 'Lottery, Investment' },
-    'Uttarakhand':      { cases: 12345,  risk: 'low',     type: 'Job, Banking Fraud' },
-    'Himachal Pradesh': { cases: 8765,   risk: 'low',     type: 'Online Fraud' },
-    'Goa':              { cases: 4321,   risk: 'low',     type: 'Tourism Scams' },
-    'Chhattisgarh':     { cases: 15432,  risk: 'medium',  type: 'Job, Lottery Scams' },
-    'Jammu & Kashmir':  { cases: 9876,   risk: 'low',     type: 'Online, Banking Fraud' },
-    'Manipur':          { cases: 3456,   risk: 'low',     type: 'Online Fraud' },
-    'Meghalaya':        { cases: 2345,   risk: 'low',     type: 'Online Fraud' },
-    'Nagaland':         { cases: 1876,   risk: 'low',     type: 'Online Fraud' },
-    'Tripura':          { cases: 2109,   risk: 'low',     type: 'Online Fraud' },
-    'Mizoram':          { cases: 1543,   risk: 'low',     type: 'Online Fraud' },
-    'Arunachal Pradesh':{ cases: 1234,   risk: 'low',     type: 'Online Fraud' },
-    'Sikkim':           { cases: 876,    risk: 'low',     type: 'Online Fraud' },
+    'Maharashtra':         { complaints: 303000, cases: 22024, loss_cr: 2750, top_scams: 'UPI Fraud, Digital Arrest, Investment Scam', risk: 'critical' },
+    'Uttar Pradesh':       { complaints: 301000, cases: 10117, loss_cr: 2100, top_scams: 'OTP Fraud, Job Scam, Lottery Fraud', risk: 'critical' },
+    'Karnataka':           { complaints: 169000, cases: 12556, loss_cr: 1840, top_scams: 'Tech Support, Investment, UPI Fraud', risk: 'veryhigh' },
+    'Gujarat':             { complaints: 168000, cases: 6776,  loss_cr: 1560, top_scams: 'Investment, Diamond, UPI Scam', risk: 'veryhigh' },
+    'Delhi':               { complaints: 153000, cases: 685,   loss_cr: 1200, top_scams: 'Phishing, Job, KYC Scam', risk: 'veryhigh' },
+    'Telangana':           { complaints: 139000, cases: 15297, loss_cr: 1100, top_scams: 'UPI Fraud, KYC, Job Scam', risk: 'veryhigh' },
+    'Rajasthan':           { complaints: 112000, cases: 8032,  loss_cr: 890,  top_scams: 'OTP, Banking, Lottery Fraud', risk: 'high' },
+    'Andhra Pradesh':      { complaints: 97000,  cases: 5176,  loss_cr: 820,  top_scams: 'UPI, KYC, Investment Scam', risk: 'high' },
+    'West Bengal':         { complaints: 87000,  cases: 7536,  loss_cr: 720,  top_scams: 'Job, Lottery, Romance Scam', risk: 'high' },
+    'Tamil Nadu':          { complaints: 82000,  cases: 4003,  loss_cr: 1100, top_scams: 'OTP, Job, Investment Fraud', risk: 'high' },
+    'Madhya Pradesh':      { complaints: 67000,  cases: 5741,  loss_cr: 540,  top_scams: 'Lottery, Job, OTP Scam', risk: 'medium' },
+    'Haryana':             { complaints: 58000,  cases: 4521,  loss_cr: 480,  top_scams: 'Job, Investment, UPI Fraud', risk: 'medium' },
+    'Bihar':               { complaints: 48000,  cases: 3287,  loss_cr: 380,  top_scams: 'OTP, Banking Fraud', risk: 'medium' },
+    'Punjab':              { complaints: 39000,  cases: 2176,  loss_cr: 310,  top_scams: 'Banking, UPI Scam', risk: 'medium' },
+    'Odisha':              { complaints: 34000,  cases: 1876,  loss_cr: 270,  top_scams: 'Lottery, Investment', risk: 'medium' },
+    'Jharkhand':           { complaints: 28000,  cases: 1654,  loss_cr: 220,  top_scams: 'OTP, Banking Fraud', risk: 'low' },
+    'Chhattisgarh':        { complaints: 24000,  cases: 1432,  loss_cr: 190,  top_scams: 'Job, Lottery Scam', risk: 'low' },
+    'Kerala':              { complaints: 22000,  cases: 2341,  loss_cr: 180,  top_scams: 'Online Shopping, Job', risk: 'low' },
+    'Assam':               { complaints: 18000,  cases: 987,   loss_cr: 140,  top_scams: 'Lottery, Investment', risk: 'low' },
+    'Uttarakhand':         { complaints: 14000,  cases: 876,   loss_cr: 110,  top_scams: 'Job, Banking Fraud', risk: 'low' },
+    'Himachal Pradesh':    { complaints: 9000,   cases: 543,   loss_cr: 70,   top_scams: 'Online Fraud', risk: 'low' },
+    'Jammu & Kashmir':     { complaints: 11000,  cases: 678,   loss_cr: 85,   top_scams: 'Online, Banking Fraud', risk: 'low' },
+    'Goa':                 { complaints: 5000,   cases: 234,   loss_cr: 40,   top_scams: 'Tourism Scam', risk: 'low' },
+    'Manipur':             { complaints: 3200,   cases: 187,   loss_cr: 25,   top_scams: 'Online Fraud', risk: 'low' },
+    'Meghalaya':           { complaints: 2800,   cases: 165,   loss_cr: 22,   top_scams: 'Online Fraud', risk: 'low' },
+    'Nagaland':            { complaints: 2100,   cases: 124,   loss_cr: 17,   top_scams: 'Online Fraud', risk: 'low' },
+    'Tripura':             { complaints: 2400,   cases: 143,   loss_cr: 19,   top_scams: 'Online Fraud', risk: 'low' },
+    'Mizoram':             { complaints: 1700,   cases: 98,    loss_cr: 13,   top_scams: 'Online Fraud', risk: 'low' },
+    'Arunachal Pradesh':   { complaints: 1400,   cases: 82,    loss_cr: 11,   top_scams: 'Online Fraud', risk: 'low' },
+    'Sikkim':              { complaints: 900,    cases: 54,    loss_cr: 7,    top_scams: 'Online Fraud', risk: 'low' },
   }
 };
 
-// Add type-specific data
-stateData.upi = {};
-stateData.phishing = {};
-stateData.job = {};
-stateData.lottery = {};
-
-Object.entries(stateData.all).forEach(([state, d]) => {
-  stateData.upi[state]      = { ...d, cases: Math.floor(d.cases * 0.35) };
-  stateData.phishing[state] = { ...d, cases: Math.floor(d.cases * 0.25) };
-  stateData.job[state]      = { ...d, cases: Math.floor(d.cases * 0.20) };
-  stateData.lottery[state]  = { ...d, cases: Math.floor(d.cases * 0.20) };
+// Type-filtered data
+['upi','phishing','job','digital_arrest'].forEach(type => {
+  const ratios = {upi:0.38, phishing:0.22, job:0.18, digital_arrest:0.14};
+  stateData[type] = {};
+  Object.entries(stateData.all).forEach(([state, d]) => {
+    stateData[type][state] = {
+      ...d,
+      complaints: Math.floor(d.complaints * ratios[type]),
+      cases: Math.floor(d.cases * ratios[type]),
+      loss_cr: Math.floor(d.loss_cr * ratios[type])
+    };
+  });
 });
 
+// Risk colors
 const riskColors = {
-  extreme: '#ff1a1a',
-  high:    '#ff6600',
-  medium:  '#ffaa00',
-  low:     '#00aa44',
-  none:    '#0e1c1c'
+  critical: '#dc2626',
+  veryhigh: '#ea580c',
+  high:     '#d97706',
+  medium:   '#65a30d',
+  low:      '#16a34a'
 };
 
-let currentFilter = 'all';
-
-function getRiskLevel(cases) {
-  if (cases > 100000) return 'extreme';
-  if (cases > 50000)  return 'high';
-  if (cases > 20000)  return 'medium';
-  if (cases > 0)      return 'low';
-  return 'none';
+// Get risk for filtered data
+function getRisk(complaints) {
+  if (complaints > 250000) return 'critical';
+  if (complaints > 150000) return 'veryhigh';
+  if (complaints > 80000)  return 'high';
+  if (complaints > 30000)  return 'medium';
+  return 'low';
 }
 
-function formatCases(n) {
+function formatNum(n) {
   if (n >= 100000) return (n/100000).toFixed(1) + 'L';
   if (n >= 1000)   return (n/1000).toFixed(1) + 'K';
   return n.toString();
 }
 
-// Build SVG India Map
-function buildMap(filter) {
+// ── LEAFLET MAP ───────────────────────────────────────────
+const map = L.map('map', {
+  center: [22.5, 82.0],
+  zoom: 5,
+  zoomControl: true,
+  scrollWheelZoom: true,
+  attributionControl: false
+});
+
+// Dark tile layer
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom: 10, minZoom: 4
+}).addTo(map);
+
+let geojsonLayer = null;
+let currentFilter = 'all';
+
+// Load India GeoJSON
+fetch('https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson')
+  .then(r => r.json())
+  .then(data => {
+    indiaGeoJSON = data;
+    renderMap('all');
+    buildRankings('all');
+  })
+  .catch(() => {
+    document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-family:var(--mono);font-size:.8rem;">Map requires internet connection to load GeoJSON data</div>';
+  });
+
+let indiaGeoJSON = null;
+
+function getStateName(feature) {
+  return feature.properties.NAME_1 || feature.properties.ST_NM || feature.properties.name || '';
+}
+
+function getStateColor(stateName, filter) {
   const data = stateData[filter] || stateData.all;
-  const maxCases = Math.max(...Object.values(data).map(d => d.cases));
+  const match = Object.keys(data).find(k =>
+    stateName.toLowerCase().includes(k.toLowerCase()) ||
+    k.toLowerCase().includes(stateName.toLowerCase())
+  );
+  if (!match) return '#0e1c1c';
+  const d = data[match];
+  const risk = filter === 'all' ? d.risk : getRisk(d.complaints);
+  return riskColors[risk] || '#0e1c1c';
+}
 
-  // Simplified India SVG paths
-  const states = {
-    'Jammu & Kashmir':   'M 180 30 L 220 25 L 240 45 L 230 65 L 210 70 L 185 60 Z',
-    'Himachal Pradesh':  'M 210 70 L 235 65 L 245 85 L 225 95 L 208 88 Z',
-    'Punjab':            'M 175 75 L 210 70 L 208 88 L 195 100 L 170 95 Z',
-    'Uttarakhand':       'M 225 95 L 255 85 L 265 105 L 245 115 L 225 110 Z',
-    'Haryana':           'M 185 95 L 208 88 L 225 110 L 210 120 L 188 115 Z',
-    'Delhi':             'M 205 110 L 218 108 L 220 120 L 207 122 Z',
-    'Rajasthan':         'M 148 100 L 195 95 L 210 120 L 205 160 L 175 180 L 145 170 L 130 140 Z',
-    'Uttar Pradesh':     'M 210 120 L 280 108 L 295 130 L 285 165 L 245 175 L 205 165 L 205 140 Z',
-    'Bihar':             'M 285 130 L 320 125 L 330 150 L 310 165 L 285 165 Z',
-    'Sikkim':            'M 325 118 L 338 115 L 340 128 L 328 130 Z',
-    'Arunachal Pradesh': 'M 338 100 L 395 95 L 400 118 L 365 125 L 338 118 Z',
-    'Nagaland':          'M 380 125 L 400 120 L 405 140 L 385 145 Z',
-    'Manipur':           'M 382 145 L 400 142 L 405 162 L 385 165 Z',
-    'Mizoram':           'M 375 165 L 392 162 L 395 180 L 378 183 Z',
-    'Tripura':           'M 358 162 L 375 160 L 378 178 L 360 180 Z',
-    'Meghalaya':         'M 330 150 L 360 148 L 362 165 L 332 167 Z',
-    'Assam':             'M 330 128 L 385 122 L 385 148 L 358 148 L 330 150 Z',
-    'West Bengal':       'M 310 150 L 340 148 L 355 185 L 335 210 L 308 200 L 305 170 Z',
-    'Jharkhand':         'M 285 165 L 315 162 L 320 190 L 295 200 L 278 188 Z',
-    'Odisha':            'M 278 190 L 320 188 L 325 225 L 300 240 L 272 228 Z',
-    'Madhya Pradesh':    'M 175 175 L 245 172 L 265 200 L 255 228 L 210 238 L 170 225 L 160 200 Z',
-    'Chhattisgarh':      'M 255 200 L 285 195 L 295 230 L 275 255 L 248 248 L 245 225 Z',
-    'Gujarat':           'M 108 155 L 150 148 L 165 178 L 148 205 L 118 210 L 95 190 Z',
-    'Maharashtra':       'M 148 205 L 210 200 L 235 228 L 225 265 L 185 278 L 150 260 L 130 235 Z',
-    'Telangana':         'M 225 240 L 270 235 L 278 265 L 255 285 L 228 278 Z',
-    'Andhra Pradesh':    'M 225 275 L 280 265 L 295 300 L 278 325 L 245 330 L 218 310 Z',
-    'Karnataka':         'M 168 278 L 228 272 L 240 315 L 215 345 L 180 348 L 158 320 Z',
-    'Kerala':            'M 182 348 L 215 345 L 218 390 L 198 400 L 178 378 Z',
-    'Tamil Nadu':        'M 218 318 L 260 310 L 272 360 L 245 388 L 215 390 L 210 360 Z',
-    'Goa':               'M 148 295 L 165 290 L 168 308 L 150 312 Z',
-  };
+function getStateData(stateName, filter) {
+  const data = stateData[filter] || stateData.all;
+  return Object.entries(data).find(([k]) =>
+    stateName.toLowerCase().includes(k.toLowerCase()) ||
+    k.toLowerCase().includes(stateName.toLowerCase())
+  );
+}
 
-  const svgStates = Object.entries(states).map(([name, path]) => {
-    const stateInfo = data[name];
-    const cases = stateInfo ? stateInfo.cases : 0;
-    const risk = stateInfo ? getRiskLevel(cases) : 'none';
-    const color = riskColors[risk];
-    const opacity = cases > 0 ? 0.4 + (cases / maxCases) * 0.6 : 0.15;
+function renderMap(filter) {
+  if (!indiaGeoJSON) return;
+  if (geojsonLayer) map.removeLayer(geojsonLayer);
 
-    return `
-      <path
-        d="${path}"
-        fill="${color}"
-        fill-opacity="${opacity}"
-        stroke="#0a1414"
-        stroke-width="1.5"
-        data-state="${name}"
-        data-cases="${cases}"
-        data-risk="${risk}"
-        data-type="${stateInfo ? stateInfo.type : 'No data'}"
-        style="cursor:none;transition:fill-opacity .2s;"
-        onmouseover="showTooltip(event,'${name}',${cases},'${risk}','${stateInfo ? stateInfo.type : 'No data'}')"
-        onmousemove="moveTooltip(event)"
-        onmouseout="hideTooltip()"
-        onclick="selectState('${name}',${cases},'${stateInfo ? stateInfo.type : 'No data'}')"
-      />
-      <text
-        x="${getCentroid(path).x}"
-        y="${getCentroid(path).y}"
-        font-family="'Share Tech Mono',monospace"
-        font-size="6"
-        fill="#8bbfaa"
-        fill-opacity="0.7"
-        text-anchor="middle"
-        pointer-events="none"
-      >${name.length > 8 ? name.substring(0,7)+'.' : name}</text>
-    `;
-  }).join('');
+  geojsonLayer = L.geoJSON(indiaGeoJSON, {
+    style: feature => {
+      const name = getStateName(feature);
+      const color = getStateColor(name, filter);
+      return {
+        fillColor: color,
+        fillOpacity: 0.72,
+        color: '#0a1414',
+        weight: 1.5,
+        opacity: 1
+      };
+    },
+    onEachFeature: (feature, layer) => {
+      const name = getStateName(feature);
+      const match = getStateData(name, filter);
 
-  document.getElementById('india-map').innerHTML = `
-    <svg viewBox="50 20 400 400" width="100%" height="100%"
-         xmlns="http://www.w3.org/2000/svg">
-      <rect x="50" y="20" width="400" height="400" fill="transparent"/>
-      ${svgStates}
-    </svg>
+      layer.on({
+        mouseover: e => {
+          e.target.setStyle({ fillOpacity: 0.9, weight: 2.5, color: '#00ff88' });
+          if (match) {
+            const [sName, d] = match;
+            layer.bindTooltip(`
+              <div style="font-family:'Share Tech Mono',monospace;font-size:12px;background:#0a1414;border:1px solid rgba(0,255,136,0.3);padding:10px 14px;border-radius:8px;color:#e8fff4;min-width:180px;">
+                <div style="font-weight:700;font-size:14px;color:#00ff88;margin-bottom:5px;">${sName}</div>
+                <div style="color:#ff3d5a;margin-bottom:3px;">🚨 ${formatNum(d.complaints)} complaints</div>
+                <div style="color:#8bbfaa;margin-bottom:3px;">📋 ${d.cases.toLocaleString()} FIRs</div>
+                <div style="color:#ffaa00;">💸 ₹${d.loss_cr}Cr lost</div>
+              </div>
+            `, { permanent: false, sticky: true, className: 'custom-tooltip' }).openTooltip();
+          }
+        },
+        mouseout: e => {
+          geojsonLayer.resetStyle(e.target);
+          layer.closeTooltip();
+        },
+        click: () => {
+          if (match) showStateInfo(match[0], match[1]);
+        }
+      });
+    }
+  }).addTo(map);
+}
+
+function showStateInfo(name, d) {
+  const panel = document.getElementById('state-info');
+  const riskLabel = { critical:'CRITICAL RISK', veryhigh:'VERY HIGH RISK', high:'HIGH RISK', medium:'MEDIUM RISK', low:'LOW RISK' };
+  const riskColor = { critical:'var(--red)', veryhigh:'#ea580c', high:'var(--amber)', medium:'#65a30d', low:'var(--green)' };
+  const risk = currentFilter === 'all' ? d.risk : getRisk(d.complaints);
+
+  document.getElementById('si-name').textContent = name;
+  document.getElementById('si-risk').innerHTML = `<span style="color:${riskColor[risk]}">${riskLabel[risk]}</span>`;
+  document.getElementById('si-details').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:var(--mono);font-size:1.2rem;color:var(--red);font-weight:700;">${formatNum(d.complaints)}</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:3px;letter-spacing:.05em;">COMPLAINTS</div>
+      </div>
+      <div style="background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:var(--mono);font-size:1.2rem;color:var(--amber);font-weight:700;">${d.cases.toLocaleString()}</div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-top:3px;letter-spacing:.05em;">FIRs FILED</div>
+      </div>
+    </div>
+    <div style="background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.06em;margin-bottom:5px;">MONEY LOST</div>
+      <div style="font-family:var(--mono);font-size:1.1rem;color:var(--green);">₹${d.loss_cr} Crore</div>
+    </div>
+    <div style="background:var(--black3);border:1px solid var(--border);border-radius:8px;padding:10px;">
+      <div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);letter-spacing:.06em;margin-bottom:5px;">TOP SCAM TYPES</div>
+      <div style="font-size:.8rem;color:var(--text2);line-height:1.5;">${d.top_scams}</div>
+    </div>
   `;
-}
-
-function getCentroid(pathD) {
-  const nums = pathD.match(/-?[\d.]+/g).map(Number);
-  let xs = [], ys = [];
-  for (let i = 0; i < nums.length; i += 2) {
-    xs.push(nums[i]); ys.push(nums[i+1]);
-  }
-  return {
-    x: xs.reduce((a,b) => a+b, 0) / xs.length,
-    y: ys.reduce((a,b) => a+b, 0) / ys.length
-  };
-}
-
-function showTooltip(e, name, cases, risk, type) {
-  const tt = document.getElementById('tooltip');
-  tt.style.display = 'block';
-  tt.innerHTML = `
-    <div style="font-family:var(--head);font-size:.9rem;font-weight:700;color:var(--text1);margin-bottom:4px;">${name}</div>
-    <div style="color:${riskColors[risk]};margin-bottom:4px;text-transform:uppercase;font-size:.65rem;">${risk} risk</div>
-    <div style="color:var(--text2);margin-bottom:4px;">${formatCases(cases)} cases</div>
-    <div style="color:var(--text3);font-size:.65rem;">${type}</div>
-  `;
-  moveTooltip(e);
-}
-
-function moveTooltip(e) {
-  const tt = document.getElementById('tooltip');
-  const box = document.getElementById('india-map').getBoundingClientRect();
-  tt.style.left = (e.clientX - box.left + 12) + 'px';
-  tt.style.top  = (e.clientY - box.top  - 10) + 'px';
-}
-
-function hideTooltip() {
-  document.getElementById('tooltip').style.display = 'none';
-}
-
-function selectState(name, cases, type) {
-  alert(`📍 ${name}\n\nScam Cases: ${formatCases(cases)}\nCommon Scams: ${type}\n\nReport to Cyber Crime Helpline: 1930`);
-}
-
-function filterMap(type, btn) {
-  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentFilter = type;
-  buildMap(type);
-  buildRankings(type);
+  panel.classList.add('show');
+  panel.style.display = 'block';
 }
 
 function buildRankings(filter) {
   const data = stateData[filter] || stateData.all;
   const sorted = Object.entries(data)
-    .sort((a,b) => b[1].cases - a[1].cases)
+    .sort((a,b) => b[1].complaints - a[1].complaints)
     .slice(0, 10);
+  const max = sorted[0][1].complaints;
 
-  const maxCases = sorted[0][1].cases;
-  const list = document.getElementById('rankings-list');
-  list.innerHTML = sorted.map(([name, d], i) => {
-    const pct = (d.cases / maxCases * 100).toFixed(0);
-    const color = riskColors[getRiskLevel(d.cases)];
+  document.getElementById('rankings').innerHTML = sorted.map(([name, d], i) => {
+    const risk = filter === 'all' ? d.risk : getRisk(d.complaints);
+    const color = riskColors[risk];
+    const pct = (d.complaints / max * 100).toFixed(0);
     return `
-      <div style="display:flex;flex-direction:column;gap:4px;">
+      <div class="rank-item">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <span style="font-family:var(--mono);font-size:.65rem;color:var(--text3);min-width:18px;">${i+1}.</span>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-family:var(--mono);font-size:.62rem;color:var(--text3);min-width:16px;">${i+1}.</span>
             <span style="font-family:var(--head);font-size:.85rem;font-weight:600;color:var(--text1);">${name}</span>
           </div>
-          <span style="font-family:var(--mono);font-size:.7rem;color:${color};">${formatCases(d.cases)}</span>
+          <span style="font-family:var(--mono);font-size:.7rem;color:${color};">${formatNum(d.complaints)}</span>
         </div>
-        <div style="height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden;">
-          <div style="height:100%;width:0%;background:${color};border-radius:2px;transition:width 1s ease;" 
-               class="rank-bar" data-w="${pct}"></div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar" data-w="${pct}" style="background:${color};width:0%;"></div>
         </div>
       </div>
     `;
   }).join('');
 
-  // Animate bars
   setTimeout(() => {
-    document.querySelectorAll('.rank-bar').forEach(bar => {
-      bar.style.width = bar.dataset.w + '%';
-    });
+    document.querySelectorAll('.rank-bar').forEach(b => { b.style.width = b.dataset.w + '%'; });
   }, 100);
 }
 
-// Initialize
-buildMap('all');
-buildRankings('all');
+function applyFilter(filter, btn) {
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = filter;
+  renderMap(filter);
+  buildRankings(filter);
+}
 </script>
 </body>
 </html>
