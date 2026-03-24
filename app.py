@@ -384,6 +384,11 @@ def image_result():
                            translated_text=data['translated_text'],
                            user=session.get('user'))
 
+# ─── SCAM HEATMAP ────────────────────────────────────────
+@app.route('/heatmap')
+def heatmap():
+    return render_template('heatmap.html')
+
 @app.route('/quiz')
 def quiz():
     return render_template('quiz.html')
