@@ -40,24 +40,11 @@ body {
   color: var(--text1);
   min-height: 100vh;
   overflow-x: hidden;
-  cursor: none;
 }
 
-/* ── CUSTOM CURSOR ── */
-.cursor {
-  width: 8px; height: 8px; background: var(--green);
-  border-radius: 50%; position: fixed; pointer-events: none;
-  z-index: 9999; transform: translate(-50%,-50%);
-  transition: width .15s, height .15s, opacity .15s;
-  box-shadow: 0 0 10px var(--green), 0 0 20px rgba(0,255,136,0.4);
-}
-.cursor-ring {
-  width: 28px; height: 28px; border: 1px solid rgba(0,255,136,0.5);
-  border-radius: 50%; position: fixed; pointer-events: none;
-  z-index: 9998; transform: translate(-50%,-50%);
-  transition: all .1s ease-out;
-}
-body:hover .cursor { opacity: 1; }
+/* ── CUSTOM CURSOR (removed — using default cursor) ── */
+.cursor { display: none; }
+.cursor-ring { display: none; }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; }
@@ -221,7 +208,7 @@ textarea.form-input { height: auto; padding: .8rem 1rem; resize: vertical; line-
   padding: 0.62rem 1.4rem; border-radius: 8px;
   font-family: var(--body); font-size: 0.85rem; font-weight: 600;
   letter-spacing: 0.05em; text-transform: uppercase;
-  border: none; cursor: none; text-decoration: none;
+  border: none; cursor: pointer; text-decoration: none;
   transition: all .2s; position: relative; overflow: hidden;
 }
 .btn::after {
@@ -387,7 +374,7 @@ footer {
 /* ── UPLOAD ZONE ── */
 .upload-zone {
   border: 1.5px dashed var(--border2); border-radius: 10px;
-  padding: 2.2rem 1.5rem; text-align: center; cursor: none;
+  padding: 2.2rem 1.5rem; text-align: center; cursor: pointer;
   transition: border-color .2s, background .2s; margin-bottom: 1rem;
   position: relative;
 }
@@ -404,7 +391,7 @@ footer {
 }
 .stab {
   flex: 1; padding: 0.6rem 0.5rem; border-radius: 7px; border: none;
-  background: transparent; color: var(--text3); cursor: none;
+  background: transparent; color: var(--text3); cursor: pointer;
   font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
   display: flex; align-items: center; justify-content: center; gap: 7px;
   transition: all .2s;
